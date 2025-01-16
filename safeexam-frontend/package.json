@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run open-browser && next dev -p 1111",
+    "open-browser": "start http://localhost:1111",
     "build": "next build",
-    "start": "next start",
+    "start": "npm run open-browser && next start -p 1111",
     "lint": "next lint"
   },
   "dependencies": {

@@ -1,12 +1,12 @@
 "use client";
 import Image from "next/image";
 import { useForm, SubmitHandler } from "react-hook-form";
-import { TextField, Button, Box, Typography, Container } from "@mui/material";
+import { TextField, Button, Box } from "@mui/material";
 interface LoginDetails {
   username: string;
   password: string;
 }
-export default function page() {
+export default function LoginPage() {
   const {
     register,
     handleSubmit,

@@ -18,14 +18,4 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
-
-  background-image: url('/background/login-bcg.png');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-  overflow: hidden;
 }

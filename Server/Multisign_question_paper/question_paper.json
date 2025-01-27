@@ -1,0 +1,52 @@
+[
+    {
+      "que": "What is the capital of France?",
+      "options": ["Paris", "London", "Berlin", "Rome"]
+    },
+    {
+      "que": "Which planet is known as the Red Planet?",
+      "options": ["Mars", "Venus", "Jupiter", "Saturn"]
+    },
+    {
+      "que": "What is the largest mammal?",
+      "options": ["Blue Whale", "Elephant", "Giraffe", "Hippopotamus"]
+    },
+    {
+      "que": "Who wrote 'Hamlet'?",
+      "options": ["Shakespeare", "Hemingway", "Dickens", "Austen"]
+    },
+    {
+      "que": "What is the boiling point of water?",
+      "options": ["100°C", "90°C", "120°C", "80°C"]
+    },
+    {
+      "que": "Which is the smallest prime number?",
+      "options": ["2", "3", "1", "5"]
+    },
+    { "que": "What is the square root of 64?", "options": ["8", "7", "9", "6"] },
+    {
+      "que": "What is the chemical symbol for gold?",
+      "options": ["Au", "Ag", "Fe", "Pb"]
+    },
+    {
+      "que": "Who painted the Mona Lisa?",
+      "options": ["Leonardo da Vinci", "Van Gogh", "Picasso", "Michelangelo"]
+    },
+    {
+      "que": "What is the largest desert in the world?",
+      "options": ["Sahara", "Arctic", "Gobi", "Kalahari"]
+    },
+    {
+      "que": "Which gas do plants absorb?",
+      "options": ["Carbon dioxide", "Oxygen", "Nitrogen", "Hydrogen"]
+    },
+    {
+      "que": "What is the capital of Japan?",
+      "options": ["Tokyo", "Kyoto", "Osaka", "Nagoya"]
+    },
+    {
+      "que": "What is the currency of the United States?",
+      "options": ["Dollar", "Euro", "Pound", "Yen"]
+    },
+    { "que": "How many continents are there?", "options": ["7", "6", "5", "8"] }
+  ]

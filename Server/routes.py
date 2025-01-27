@@ -7,6 +7,7 @@ from algokit_utils import account as  algokit_accounts
 from algosdk.v2client.algod import AlgodClient
 import os
 import json
+from flask_login import login_required
 
 
 def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
@@ -20,7 +21,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
     def login_page():
         return render_template("login.html")
     
-
+    
     @app.route("/signup", methods = ['POST'])
     def signup():
         
@@ -122,6 +123,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
         except Exception as e:
             return jsonify({"Error" : e}) , 400
     
+
     @app.route("/generate_account", methods = ["POST"])
     def generate_account():
         try:

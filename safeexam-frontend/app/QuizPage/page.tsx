@@ -3,90 +3,69 @@ import Button from "@mui/material/Button";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import AlertDialog from "../common/DialogBox";
+import { QuestionPaperUrl } from "../apiUrl/page";
+import CustomSnackbar from "../common/SnackBar";
+import { useRouter } from "next/navigation";
+
+interface QuestionPaper {
+  que: String;
+  options: String[];
+}
 
 export default function QuizPage() {
   const [queno, setQueno] = useState(0);
-  const [que, setQue] = useState("");
-  const [options, setOptions] = useState<string[]>([]);
+  const [questions, setQuestions] = useState<QuestionPaper[]>([]);
   const [interactedQuestions, setInteractedQuestions] = useState<Set<number>>(
     new Set([0])
   );
-  const [selectedAnswers, setSelectedAnswers] = useState<number[]>(
-    Array(14).fill(-1)
+  const [dialogMode, setDialogMode] = useState<"warning" | "confirmation">(
+    "warning"
   );
-  const que_array = [
-    {
-      que: "What is the capital of France?",
-      options: ["Paris", "London", "Berlin", "Rome"],
-    },
-    {
-      que: "Which planet is known as the Red Planet?",
-      options: ["Mars", "Venus", "Jupiter", "Saturn"],
-    },
-    {
-      que: "What is the largest mammal?",
-      options: ["Blue Whale", "Elephant", "Giraffe", "Hippopotamus"],
-    },
-    {
-      que: "Who wrote 'Hamlet'?",
-      options: ["Shakespeare", "Hemingway", "Dickens", "Austen"],
-    },
-    {
-      que: "What is the boiling point of water?",
-      options: ["100°C", "90°C", "120°C", "80°C"],
-    },
-    {
-      que: "Which is the smallest prime number?",
-      options: ["2", "3", "1", "5"],
-    },
-    { que: "What is the square root of 64?", options: ["8", "7", "9", "6"] },
-    {
-      que: "What is the chemical symbol for gold?",
-      options: ["Au", "Ag", "Fe", "Pb"],
-    },
-    {
-      que: "Who painted the Mona Lisa?",
-      options: ["Leonardo da Vinci", "Van Gogh", "Picasso", "Michelangelo"],
-    },
-    {
-      que: "What is the largest desert in the world?",
-      options: ["Sahara", "Arctic", "Gobi", "Kalahari"],
-    },
-    {
-      que: "Which gas do plants absorb?",
-      options: ["Carbon dioxide", "Oxygen", "Nitrogen", "Hydrogen"],
-    },
-    {
-      que: "What is the capital of Japan?",
-      options: ["Tokyo", "Kyoto", "Osaka", "Nagoya"],
-    },
-    {
-      que: "What is the currency of the United States?",
-      options: ["Dollar", "Euro", "Pound", "Yen"],
-    },
-    { que: "How many continents are there?", options: ["7", "6", "5", "8"] },
-  ];
+  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+  const [snackbarStatus, setSnackbarStatus] = useState<"success" | "error">(
+    "success"
+  );
+  const router = useRouter();
+  const handleCloseSnackbar = () => setSnackbarOpen(false);
 
-  const load_que_option = () => {
-    if (queno >= 0 && queno < que_array.length) {
-      setQue(que_array[queno].que);
-      setOptions(que_array[queno].options);
-    } else {
-      setQue(
-        "Login to start your exam with confidence. Your information is handled with the utmost care and securely stored to ensure it stays safe and protected every step of the way"
-      );
-      setOptions([]);
+  const loadQuestions = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(QuestionPaperUrl,{
+        method: "POST",
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      });
+      if (!response.ok) {
+        setErrorMessage("Failed to fetch question data");
+        setSnackbarStatus("error");
+        setSnackbarOpen(true);
+        return;
+      }
+      const data: QuestionPaper[] = await response.json();
+      setQuestions(data);
+      setSelectedAnswers(Array(data.length).fill(-1));
+      setLoading(false);
+    } catch (error) {
+      setErrorMessage(`Error fetching questions: ${error}`);
+      setSnackbarStatus("error");
+      setSnackbarOpen(true);
+      setLoading(false);
     }
   };
 
   const next_page = () => {
     if (selectedAnswers[queno] === -1) {
-      setDialogOpen(true); 
+      setDialogMode("warning");
+      setDialogOpen(true);
       return;
     }
-    if (queno < que_array.length - 1) {
+    if (queno < questions.length - 1) {
       setQueno(queno + 1);
       setInteractedQuestions((prev) => new Set(prev).add(queno + 1));
     }
@@ -107,16 +86,30 @@ export default function QuizPage() {
     const updatedAnswers = [...selectedAnswers];
     updatedAnswers[queno] = index;
     setSelectedAnswers(updatedAnswers);
+    console.log("selected Option:",updatedAnswers)
   };
 
   const handleDialogClose = () => {
     setDialogOpen(false);
   };
 
-  useEffect(() => {
-    load_que_option();
-  }, [queno]);
+  const handleSubmitExam = () => {
+    setDialogMode("confirmation");
+    setDialogOpen(true);
+  };
 
+  const handleConfirmSubmit = () => {
+    setDialogOpen(false);
+    console.log("Submitted Answers:", selectedAnswers); 
+    router.push("/LastPage");
+  };
+
+  useEffect(() => {
+    loadQuestions();
+  }, []);
+
+  const currentQuestion = questions[queno];
+  
   return (
     <div
       className="h-screen w-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center"
@@ -131,9 +124,9 @@ export default function QuizPage() {
             <p className="text-xl underline font-semibold mb-2">
               Question: {queno + 1}
             </p>
-            <p className="mb-6 text-xl">{que}</p>
+            <p className="mb-6 text-xl">{currentQuestion?.que}</p>
             <div className="space-y-4">
-              {options.map((option, index) => (
+              {currentQuestion?.options?.map((option, index) => (
                 <button
                   key={index}
                   className={`w-full text-left p-4 border rounded-md flex items-center hover:bg-green-100 ${
@@ -161,10 +154,12 @@ export default function QuizPage() {
             <Button
               variant="contained"
               size="large"
-              onClick={next_page}
-              disabled={queno === que_array.length - 1}
+              onClick={
+                queno === questions.length - 1 ? handleSubmitExam : next_page
+              }
+              color={queno === questions.length - 1 ? "success" : "primary"}
             >
-              Next
+              {queno === questions.length - 1? "Submit Exam":"Next"}
             </Button>
           </div>
         </div>
@@ -175,7 +170,7 @@ export default function QuizPage() {
           </p>
           <div className="p-4 h-[calc(95%-56px)] overflow-y-auto">
             <ul className="space-y-2">
-              {Array.from({ length: que_array.length }).map((_, index) => (
+              {Array.from({ length: questions.length }).map((_, index) => (
                 <li
                   key={index}
                   className={`p-3 rounded-md flex justify-between items-center ${
@@ -197,13 +192,29 @@ export default function QuizPage() {
             </ul>
           </div>
         </div>
+        <CustomSnackbar
+          open={snackbarOpen}
+          onClose={handleCloseSnackbar}
+          message={errorMessage || "Questions loaded successfully!"}
+          severity={snackbarStatus}
+        />
         <AlertDialog
           open={dialogOpen}
-          title="Submit Answer"
-          content="Please select answer before going furture."
-          agreeText="Select Answer"
-          disagreeText=""
-          onDisagree={handleDialogClose}
+          title={
+            dialogMode === "warning"
+              ? "Submit Answer"
+              : "Confirm Exam Submission"
+          }
+          content={
+            dialogMode === "warning"
+              ? "Please select an answer before proceeding."
+              : "Are you sure you want to submit the exam?"
+          }
+          agreeText={dialogMode === "warning" ? "Select Answer" : "Submit"}
+          disagreeText={dialogMode === "confirmation" ? "Cancel" : ""}
+          onAgree={
+            dialogMode === "confirmation" ? handleConfirmSubmit : handleDialogClose
+          }
           onClose={handleDialogClose}
         />
       </div>

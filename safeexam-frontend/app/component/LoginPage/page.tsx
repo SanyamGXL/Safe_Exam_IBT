@@ -4,11 +4,10 @@ import Image from "next/image";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { TextField, Button, Box, CircularProgress } from "@mui/material";
 import { useState } from "react";
-import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import { LoginUrl } from "../../apiUrl/page";
 import { useRouter } from "next/navigation";
-import DialogBox from "@/app/common/DialogBox";
+import CustomSnackbar from "@/app/common/SnackBar";
 import AlertDialog from "@/app/common/DialogBox";
 
 export interface LoginDetails {
@@ -32,15 +31,7 @@ export default function LoginPage() {
   );
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
 
-  const handleCloseSnackbar = (
-    event?: React.SyntheticEvent | Event,
-    reason?: string
-  ) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackbarOpen(false);
-  };
+  const handleCloseSnackbar = () => setSnackbarOpen(false);
 
   const handleDialogClose = () => {
     setDialogOpen(false);
@@ -174,20 +165,12 @@ export default function LoginPage() {
             </Button>
           </Box>
         </div>
-        <Snackbar
+        <CustomSnackbar
           open={snackbarOpen}
-          autoHideDuration={6000}
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={snackbarStatus}
-            variant="filled"
-          >
-            {loginResponse || errorMessage}
-          </Alert>
-        </Snackbar>
+          message={loginResponse || errorMessage || ""}
+          severity={snackbarStatus}
+        />
 
         <AlertDialog
           open={dialogOpen}

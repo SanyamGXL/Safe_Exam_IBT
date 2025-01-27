@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    {% if username %}
+    <h1> User :- {{ username }}</h1>
+    {% endif %}
+
+    {% if transaction_id %}
+        <h3> Transaction ID :- {{transaction_id}}</h3>
+        <form action="/sign_transaction" method="POST" style="display: inline;">
+            <input type="hidden" name="username" value="{{ username }}">
+            <input type="hidden" name="transaction_id" value="{{ transaction_id }}">
+            <button type="submit">Sign</button>
+        </form>
+
+    {% endif %}
+</body>
+</html>

@@ -5,7 +5,9 @@ from models import Student
 from algosdk import account , transaction
 from algokit_utils import account as  algokit_accounts
 from algosdk.v2client.algod import AlgodClient
-from werkzeug.security import check_password_hash
+import os
+import json
+
 
 def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
 
@@ -39,7 +41,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 except Exception as e:
                     return jsonify({
                             "Error" : "Error generating account"
-                        })
+                        }) , 400
 
                 try:
 
@@ -61,7 +63,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                     print("Error :-" , e)
                     return jsonify({
                         "Error" : "Error inserting data in table"
-                    })
+                    }) ,400
 
             else:
                 return jsonify({
@@ -106,7 +108,19 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
         except Exception as e:
             return jsonify({
                 "Error": str(e)
-            }) 
+            }) , 400
+
+    @app.route("/get_question_paper" , methods = ["POST"])
+    def get_question_paper():
+        try:
+            question_paper_dir = "Multisign_question_paper/question_paper.json"
+            if os.path.exists(question_paper_dir):
+                with open(question_paper_dir , "r") as f:
+                    question_paper = json.load(fp=f)
+
+                    return question_paper , 200
+        except Exception as e:
+            return jsonify({"Error" : e}) , 400
     
     @app.route("/generate_account", methods = ["POST"])
     def generate_account():
@@ -122,7 +136,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
         except Exception as e :
             return jsonify({
                 "Error" : "Error generating and funding account"
-            }) 
+            }) , 400
     
     
     def generate_and_fund_account():

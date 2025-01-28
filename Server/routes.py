@@ -8,6 +8,7 @@ from algosdk.v2client.algod import AlgodClient
 import os
 import json
 from flask_login import login_required
+from Blockchain.Create_Blockchain_object import Blockchain_Obj
 
 
 def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
@@ -34,24 +35,21 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
             check_row = Student.query.filter_by(student_id=student_id).first()
             
             if not check_row:
-                # Student does not exists
-
-                # Create a wallet address and private key and fund it
-                try:
-                    student_private_key , student_wallet_address = generate_and_fund_account()
-                except Exception as e:
-                    return jsonify({
-                            "Error" : "Error generating account"
-                        }) , 400
+                student_blockchain_obj = Blockchain_Obj(
+                    user_id=student_id,
+                    user_already_exist=False,
+                    user_json_data=None
+                )
 
                 try:
-
                     hashed_password = bcrypt.generate_password_hash(password=student_password).decode("utf-8")
                     new_student = Student(
                         student_id = student_id,
                         student_password = hashed_password,
-                        student_wallet_address = student_wallet_address,
-                        student_private_key = student_private_key
+                        student_wallet_address = student_blockchain_obj.address,
+                        student_private_key = student_blockchain_obj.private_key,
+                        student_mnemonic = student_blockchain_obj.new_mnemonic,
+                        student_deployed_app_id = student_blockchain_obj.deployed_app
                     )
                     db.session.add(new_student)
                     db.session.commit()
@@ -140,11 +138,8 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 "Error" : "Error generating and funding account"
             }) , 400
     
-    
     def generate_and_fund_account():
-        
         try:
-
             # Master account for funding
             master_mnemonic = "toss transfer sure frozen real jungle mouse inch smoke derive floor alter ten eagle narrow perfect soap weapon payment chaos amateur height estate absent cabbage"
             master_account = algokit_accounts.get_account_from_mnemonic(mnemonic=master_mnemonic)
@@ -171,7 +166,9 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
             transaction.wait_for_confirmation(algod_client , txid)
             return (private_key , wallet_address)
         except Exception as e:
-            return -1 
+            return -1
+
+        
 
 
 

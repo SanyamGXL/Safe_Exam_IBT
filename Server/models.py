@@ -10,6 +10,8 @@ class Student(db.Model , UserMixin):
     student_password = db.Column(db.String, nullable=False)
     student_wallet_address = db.Column(db.String, nullable=False)
     student_private_key = db.Column(db.String, nullable=False)
+    student_mnemonic = db.Column(db.String, nullable=False)
+    student_deployed_app_id = db.Column(db.String, nullable=False)
 
     def __repr__(self):
         return f"Student ID {self.SID}"

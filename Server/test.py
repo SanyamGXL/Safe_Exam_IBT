@@ -1,6 +1,6 @@
-import requests
+from Blockchain.Create_Blockchain_object import Blockchain
 
-response = requests.post(url="http://127.0.0.1:3333/get_question_paper" )
+user_obj = Blockchain(user_id="Sanyam" , user_already_exist=False , user_json_data=None)
 
 
-print(response.json())
+print(user_obj.get_generated_user_details())

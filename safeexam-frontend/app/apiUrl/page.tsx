@@ -1,2 +1,3 @@
-export const LoginUrl = "https://21b6-2409-40c0-236-825a-e046-5c19-c667-cf00.ngrok-free.app/login"
-export const QuestionPaperUrl = "https://21b6-2409-40c0-236-825a-e046-5c19-c667-cf00.ngrok-free.app/get_question_paper"
+const url = "https://df88-2409-40c0-236-825a-fd7a-4c67-e770-fad1.ngrok-free.app/"
+export const LoginUrl = `${url}login`
+export const QuestionPaperUrl = `${url}get_question_paper`

@@ -1,5 +1,5 @@
 "use client";
-import Button from "@mui/material/Button";
+import {CircularProgress,Button} from "@mui/material";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import AlertDialog from "../common/DialogBox";
@@ -29,8 +29,22 @@ export default function QuizPage() {
   const [snackbarStatus, setSnackbarStatus] = useState<"success" | "error">(
     "success"
   );
+  const [timeLeft, setTimeLeft] = useState(100);
   const router = useRouter();
   const handleCloseSnackbar = () => setSnackbarOpen(false);
+
+  const timeRemaining = async() =>{
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          router.push("/LastPage"); // Auto-submit or redirect when time is up
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer); // Cleanup on component unmount
+  }
 
   const loadQuestions = async () => {
     setLoading(true);
@@ -105,10 +119,32 @@ export default function QuizPage() {
   };
 
   useEffect(() => {
-    loadQuestions();
-  }, []);
+    const initializeQuiz = async () => {
+      await loadQuestions();
+      startTimer();
+    };
+  
+    const startTimer = () => {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setTimeout(() => router.push("/LastPage"), 0); 
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer); 
+    };
+  
+    initializeQuiz();
+  }, [router]); 
+  
 
   const currentQuestion = questions[queno];
+  const progressPercentage = (timeLeft / 100) * 100;
+  const progressColor = timeLeft <= 30 ? "error" : "success";
   
   return (
     <div
@@ -165,10 +201,21 @@ export default function QuizPage() {
         </div>
 
         <div className="m-4 w-[20%] h-[95%] shadow-2xl rounded-lg">
+        <div className="m-4 bg-green-100 p-4 rounded-md text-center mb-6">
+            <p className="text-sm text-gray-500">Timer Remaining:</p>
+            <p className={`text-2xl font-bold ${timeLeft <= 30 ? "text-red-600" : "text-green-600"}`}>
+              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
+            </p>
+            <CircularProgress
+              variant="determinate"
+              value={progressPercentage}
+              color={progressColor}
+            />
+          </div>
           <p className="text-2xl font-bold p-4 sticky top-0 z-10">
             Questions List
           </p>
-          <div className="p-4 h-[calc(95%-56px)] overflow-y-auto">
+          <div className="p-4 h-[calc(65%-56px)] overflow-y-auto">
             <ul className="space-y-2">
               {Array.from({ length: questions.length }).map((_, index) => (
                 <li

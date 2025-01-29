@@ -147,7 +147,7 @@ class Blockchain_Obj:
         )
         return app_client , app_client.app_id
     
-
+    
     def deploy_data(
         self,
         student_id,

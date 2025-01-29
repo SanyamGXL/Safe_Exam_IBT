@@ -1,4 +1,4 @@
-from flask import Flask , request , jsonify , render_template
+from flask import Flask , request , jsonify , render_template , session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from models import Student
@@ -7,8 +7,10 @@ from algokit_utils import account as  algokit_accounts
 from algosdk.v2client.algod import AlgodClient
 import os
 import json
-from flask_login import login_required
 from Blockchain.Create_Blockchain_object import Blockchain_Obj
+
+
+
 
 
 def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
@@ -16,6 +18,15 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
     @app.route("/")
     def index():
         return render_template("signup.html")
+    
+    @app.route("/signout/<student_id>", methods=["POST"])
+    def signout(student_id):
+        
+        if session.get(student_id):
+            session.pop(student_id)  # Remove the user from the session
+            return jsonify({"message": f"User {student_id} signed out successfully."}), 200
+        else:
+            return jsonify({"error": "User not found in session or already signed out."}), 404
     
 
     @app.route("/login_page")
@@ -56,7 +67,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
 
                     return jsonify({
                         "Success" : "User Created !!!"
-                    })
+                    }) ,200
 
                 except Exception as e :
                     print("Error :-" , e)
@@ -67,42 +78,60 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
             else:
                 return jsonify({
                 "Error" : "Student ID already exists."
-            })
-
+            }) , 400
 
         else:
             return jsonify({
                 "Error" : "Username or Password is null."
-            })
-        
+            }) , 400
+    
     @app.route("/login", methods = ['POST'])
     def login():
         try:
             student_id = request.form.get("student_id")
             student_password = request.form.get("student_password")
 
+
             if student_id and student_password:
                 # Query the database for the student
                 student_row = Student.query.filter_by(student_id=student_id).first()
 
                 if student_row:
+
+                    
                     # Use bcrypt to check if the entered password matches the stored hashed password
                     if bcrypt.check_password_hash(student_row.student_password, student_password):
+
+
+                        if student_id not in session:
+                            
+                            session[student_id] = {
+                                "SID" : student_row.SID,
+                                "student_id" : student_row.student_id,
+                                "student_password" : student_row.student_password,
+                                "student_wallet_address" : student_row.student_wallet_address,
+                                "student_private_key" : student_row.student_private_key,
+                                "student_mnemonic" : student_row.student_mnemonic ,
+                                "student_deployed_app_id" :student_row.student_deployed_app_id , 
+                            }
+
+                        # Later on instead of sending the Success message need to add the functionality of resume question
                         return jsonify({
                             "Success": "User Logged In !!"
-                        })
+                        }) , 200
                     else:
                         return jsonify({
                             "Error": "Incorrect password"
-                        })
+                        }) , 400
                 else:
                     return jsonify({
                         "Error": "Student does not exist"
-                    })
+                    }) , 400
             else:
                 return jsonify({
                     "Error": "Student ID or password is null"
-                })
+                }) , 400
+            
 
         except Exception as e:
             return jsonify({
@@ -131,7 +160,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
             return jsonify({
                 "private_key" : private_key,
                 "wallet_address" : wallet_address
-            })
+            }) , 200
         
         except Exception as e :
             return jsonify({

@@ -16,6 +16,8 @@ class Student(db.Model , UserMixin):
     def __repr__(self):
         return f"Student ID {self.SID}"
     
-
+    
     def get_id(self):
         return self.SID
+    
+

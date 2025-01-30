@@ -8,6 +8,7 @@ from algosdk.v2client.algod import AlgodClient
 import os
 import json
 from Blockchain.Create_Blockchain_object import Blockchain_Obj
+from Metadata import Exam_metadata
 
 
 
@@ -85,60 +86,39 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 "Error" : "Username or Password is null."
             }) , 400
     
-    @app.route("/login", methods = ['POST'])
+
+    @app.route("/login", methods=['POST'])
     def login():
-        try:
-            student_id = request.form.get("student_id")
-            student_password = request.form.get("student_password")
+        student_id = request.form.get("student_id")
+        student_password = request.form.get("student_password")
 
+        if student_id and student_password:
+            student_row = Student.query.filter_by(student_id=student_id).first()
 
-            if student_id and student_password:
-                # Query the database for the student
-                student_row = Student.query.filter_by(student_id=student_id).first()
-
-                if student_row:
-
-                    
-                    # Use bcrypt to check if the entered password matches the stored hashed password
-                    if bcrypt.check_password_hash(student_row.student_password, student_password):
-
-
-                        if student_id not in session:
-                            
-                            session[student_id] = {
-                                "SID" : student_row.SID,
-                                "student_id" : student_row.student_id,
-                                "student_password" : student_row.student_password,
-                                "student_wallet_address" : student_row.student_wallet_address,
-                                "student_private_key" : student_row.student_private_key,
-                                "student_mnemonic" : student_row.student_mnemonic ,
-                                "student_deployed_app_id" :student_row.student_deployed_app_id , 
-                            }
-
-                        # Later on instead of sending the Success message need to add the functionality of resume question
-                        return jsonify({
-                            "Success": "User Logged In !!"
-                        }) , 200
-                    else:
-                        return jsonify({
-                            "Error": "Incorrect password"
-                        }) , 400
+            if student_row:
+                if bcrypt.check_password_hash(student_row.student_password, student_password):
+                    # if student_id not in session:
+                    #     session[student_id] = {
+                    #         "SID": student_row.SID,
+                    #         "student_id": student_row.student_id,
+                    #         "student_password": student_row.student_password,
+                    #         "student_wallet_address": student_row.student_wallet_address,
+                    #         "student_private_key": student_row.student_private_key,
+                    #         "student_mnemonic": student_row.student_mnemonic,
+                    #         "student_deployed_app_id": student_row.student_deployed_app_id
+                    #     }
+                
+                    # print("Session data after login:", session)
+                    return jsonify({"Success": "User Logged In !!"}), 200
                 else:
-                    return jsonify({
-                        "Error": "Student does not exist"
-                    }) , 400
+                    return jsonify({"Error": "Incorrect password"}), 400
             else:
-                return jsonify({
-                    "Error": "Student ID or password is null"
-                }) , 400
-            
+                return jsonify({"Error": "Student does not exist"}), 400
+        else:
+            return jsonify({"Error": "Student ID or password is null"}), 400
+    
 
-        except Exception as e:
-            return jsonify({
-                "Error": str(e)
-            }) , 400
-
-    @app.route("/get_question_paper" , methods = ["POST"])
+    @app.route("/get_exam_metadata" , methods = ["GET"])
     def get_question_paper():
         try:
             question_paper_dir = "Multisign_question_paper/question_paper.json"
@@ -146,7 +126,13 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 with open(question_paper_dir , "r") as f:
                     question_paper = json.load(fp=f)
 
-                    return question_paper , 200
+                    return jsonify({
+                        "question_paper" :question_paper,
+                        "Exam_Title" : Exam_metadata.Exam_title,
+                        "City" : Exam_metadata.City,
+                        "Center" : Exam_metadata.Center,
+                        "Booklet" : Exam_metadata.booklet
+                    }) , 200
         except Exception as e:
             return jsonify({"Error" : e}) , 400
     

@@ -5,11 +5,13 @@ import algokit_utils
 from Blockchain.artifact_file import HelloWorldClient
 import threading
 import time
+from models import Student
+from collections import deque
 
 class QUEUE:
 
         def __init__(self):
-            self.Transactions_Queue = []
+            self.Transactions_Queue = deque()
 
         def write_transaction(self , json_data):
 
@@ -44,6 +46,7 @@ class QUEUE:
                     wallet_address=deployer.address,
                 )
                 transaction_id = response.tx_id
+                print("Transaction ID :-" , transaction_id)
                 sender_wallet = response.tx_info["txn"]["txn"]["snd"]
                 return transaction_id, sender_wallet
             
@@ -55,31 +58,41 @@ class QUEUE:
 
 app = create_app()
 
+
+
+
 @app.route("/write_to_blockchain" , methods = ["POST"])
 def write_to_blockchain():
 
-    student_json_data = request.json()
-
+    student_json_data = request.json
     student_id = student_json_data.get("student_id")
 
-    if student_id :
-        if student_session_data := session.get(student_id):
+    
+    if student_id:
+        student_row = Student.query.filter_by(student_id = student_id).first()
+        
+        if student_row:
+            student_menmonic = student_row.student_mnemonic
 
-            # Update the studen json data with session data 
-            # So that we can get the mnemonic of user from session
-            student_json_data.update(student_session_data)
+            student_json_data.update({
+                "user_mnemonic" : student_menmonic,
+            })
 
-            queue_obj.Transactions_Queue[0] = student_session_data
+
+            queue_obj.Transactions_Queue.appendleft(student_json_data)
+            
 
             return jsonify({
                 "Success" : "Data Added in Queue"
             }) , 200
         else:
+            print("ID not found in session")
             return jsonify({
                 "Error" : "ID not found in session , Login Again !!!"
             }) , 400
         
     else:
+        print("Student ID is null!!!")
         return jsonify({
                 "Error" : "Student ID Not received !!!"
             }) , 400
@@ -101,6 +114,8 @@ if __name__ == "__main__":
     queue_obj = QUEUE()
 
     write_transaction_thread = threading.Thread(target=transaction_writing_thread)
+    write_transaction_thread.start()
+    
 
     try:
         print("Server is running !!!")

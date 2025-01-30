@@ -1,6 +1,14 @@
-from Blockchain.Create_Blockchain_object import Blockchain
+import requests
 
-user_obj = Blockchain(user_id="Sanyam" , user_already_exist=False , user_json_data=None)
+student_json = {
+    "student_id" : "sam",
+    "start_time" :"-"
+}
 
 
-print(user_obj.get_generated_user_details())
+response = requests.post(url="http://127.0.0.1:3333//write_to_blockchain" , json=student_json)
+
+print(response.text)
+
+
+

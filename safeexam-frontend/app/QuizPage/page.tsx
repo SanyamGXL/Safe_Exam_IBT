@@ -3,18 +3,38 @@ import {CircularProgress,Button} from "@mui/material";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import AlertDialog from "../common/DialogBox";
-import { QuestionPaperUrl } from "../apiUrl/page";
+import { ExamMetadata,WriteBlockchain } from "../apiUrl/page";
 import CustomSnackbar from "../common/SnackBar";
 import { useRouter } from "next/navigation";
 
-interface QuestionPaper {
-  que: String;
-  options: String[];
+interface ExamData {
+  Exam_Title: string;
+  City: string;
+  Center: string;
+  Booklet: string;
+  question_paper: { 
+    que: string; 
+    options: string[]; 
+  }[]; 
+}
+
+interface BlockchainData {
+  student_id :string;
+  start_time :string;
+  que_ans :string;
+  exam_title :string;
+  city :string;
+  center_name :string;
+  booklet:string;
+  suspicious_activity_detected :string;
+  end_time :string;
 }
 
 export default function QuizPage() {
   const [queno, setQueno] = useState(0);
-  const [questions, setQuestions] = useState<QuestionPaper[]>([]);
+  const [examdata, setExamData] = useState<ExamData | null>(null);
+  const [questions, setQuestions] = useState<{ que: string; options: string[] }[]>([]);
+  const [blockchainData,setBlockchainData] = useState<BlockchainData[]>([]);
   const [interactedQuestions, setInteractedQuestions] = useState<Set<number>>(
     new Set([0])
   );
@@ -33,24 +53,11 @@ export default function QuizPage() {
   const router = useRouter();
   const handleCloseSnackbar = () => setSnackbarOpen(false);
 
-  const timeRemaining = async() =>{
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          router.push("/LastPage"); // Auto-submit or redirect when time is up
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer); // Cleanup on component unmount
-  }
-
   const loadQuestions = async () => {
     setLoading(true);
     try {
-      const response = await fetch(QuestionPaperUrl,{
-        method: "POST",
+      const response = await fetch(ExamMetadata,{
+        method: "GET",
         headers: {
           "ngrok-skip-browser-warning": "true",
         },
@@ -61,9 +68,19 @@ export default function QuizPage() {
         setSnackbarOpen(true);
         return;
       }
-      const data: QuestionPaper[] = await response.json();
-      setQuestions(data);
-      setSelectedAnswers(Array(data.length).fill(-1));
+      const data = await response.json();
+      if (!data || !Array.isArray(data.question_paper) || data.question_paper.length === 0) {
+        throw new Error("Invalid question format or empty response.");
+      }
+      setExamData({
+        Exam_Title: data.Exam_Title,
+        City: data.City,
+        Center: data.Center,
+        Booklet: data.Booklet,
+        question_paper: data.question_paper,
+      });
+      setQuestions(data.question_paper);
+      setSelectedAnswers(Array(data.question_paper.length).fill(-1));
       setLoading(false);
     } catch (error) {
       setErrorMessage(`Error fetching questions: ${error}`);
@@ -72,13 +89,65 @@ export default function QuizPage() {
       setLoading(false);
     }
   };
+  
 
-  const next_page = () => {
+  const WriteToBlockchain = async (questionIndex: number,isFinalSubmit = false) =>{
+    if (!questions.length) {
+      setErrorMessage("Exam data not loaded.");
+      setSnackbarStatus("error");
+      setSnackbarOpen(true);
+      return;
+    }
+    const currentExam = examdata; 
+    const answerLetter = String.fromCharCode(65 + selectedAnswers[questionIndex]);
+    const blockchainPayload: BlockchainData = {
+      student_id: localStorage.getItem("student_id") || "",
+      start_time: localStorage.getItem("start_time") || "",
+      que_ans: `${questionIndex + 1}:${answerLetter}`,
+      exam_title: currentExam?.Exam_Title || "",
+      city: currentExam?.City || "",
+      center_name: currentExam?.Center || "",
+      booklet: currentExam?.Booklet || "",
+      suspicious_activity_detected: "-",
+      end_time:  isFinalSubmit ? (Math.floor(Date.now() / 1000)).toString() : "-"
+    };
+    console.log("blockchainPayload",blockchainPayload)
+    setLoading(true);
+    try {
+      const response = await fetch(WriteBlockchain, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify(blockchainPayload),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to write exam data to blockchain.");
+      }
+  
+      const data: BlockchainData[] = await response.json();
+      setBlockchainData(data);
+      setSnackbarStatus("success");
+      setSnackbarOpen(true);
+    } catch (error:any) {
+      setErrorMessage(`Blockchain write error: ${error.message}`);
+      setSnackbarStatus("error");
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
+  const next_page = async () => {
     if (selectedAnswers[queno] === -1) {
       setDialogMode("warning");
       setDialogOpen(true);
       return;
     }
+    await WriteToBlockchain(queno); 
     if (queno < questions.length - 1) {
       setQueno(queno + 1);
       setInteractedQuestions((prev) => new Set(prev).add(queno + 1));
@@ -100,7 +169,6 @@ export default function QuizPage() {
     const updatedAnswers = [...selectedAnswers];
     updatedAnswers[queno] = index;
     setSelectedAnswers(updatedAnswers);
-    console.log("selected Option:",updatedAnswers)
   };
 
   const handleDialogClose = () => {
@@ -112,9 +180,9 @@ export default function QuizPage() {
     setDialogOpen(true);
   };
 
-  const handleConfirmSubmit = () => {
-    setDialogOpen(false);
-    console.log("Submitted Answers:", selectedAnswers); 
+  const handleConfirmSubmit = async () => {
+    setDialogOpen(true);
+    await WriteToBlockchain(queno, true);
     router.push("/LastPage");
   };
 
@@ -129,7 +197,7 @@ export default function QuizPage() {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            setTimeout(() => router.push("/LastPage"), 0); 
+            // setTimeout(() => router.push("/LastPage"), 0); 
             return 0;
           }
           return prev - 1;

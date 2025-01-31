@@ -54,7 +54,6 @@ export default function LoginPage() {
       const formData = new FormData();
       formData.append("student_id", student_id);
       formData.append("student_password", student_password);
-
       const response = await fetch(LoginUrl, {
         method: "POST",
         headers: {
@@ -62,10 +61,14 @@ export default function LoginPage() {
         },
         body: formData,
       });
-
+      console.log("Login Response:",response);
       if (response.ok) {
+        const start_time = Math.floor(Date.now() / 1000);
+        const studentId = localStorage.setItem("student_id", student_id);
+        const startTime = localStorage.setItem("start_time", start_time.toString());
+        console.log("Student_id:",{studentId},"Start_time",{startTime})
         const loginData = await response.json();
-
+        console.log("Login Response:",loginData);
         if (loginData.Success) {
           setLoginResponse(`Welcome, ${loginData.student_id || "Student"}!`);
           setSnackbarStatus("success");

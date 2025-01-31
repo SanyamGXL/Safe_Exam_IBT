@@ -101,13 +101,13 @@ export default function QuizPage() {
     const currentExam = examdata; 
     const answerLetter = String.fromCharCode(65 + selectedAnswers[questionIndex]);
     const blockchainPayload: BlockchainData = {
-      student_id: localStorage.getItem("student_id") || "",
-      start_time: localStorage.getItem("start_time") || "",
-      que_ans: `${questionIndex + 1}:${answerLetter}`,
-      exam_title: currentExam?.Exam_Title || "",
-      city: currentExam?.City || "",
-      center_name: currentExam?.Center || "",
-      booklet: currentExam?.Booklet || "",
+      student_id: localStorage.getItem("student_id") || "-",
+      start_time: localStorage.getItem("start_time") || "-",
+      que_ans: `${questionIndex + 1}-${answerLetter}`,
+      exam_title: currentExam?.Exam_Title || "-",
+      city: currentExam?.City || "-",
+      center_name: currentExam?.Center || "-",
+      booklet: currentExam?.Booklet || "-",
       suspicious_activity_detected: "-",
       end_time:  isFinalSubmit ? (Math.floor(Date.now() / 1000)).toString() : "-"
     };

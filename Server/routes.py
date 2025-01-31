@@ -9,7 +9,8 @@ import os
 import json
 from Blockchain.Create_Blockchain_object import Blockchain_Obj
 from Metadata import Exam_metadata
-
+import base64
+from Metadata import Blockchain_Metadata
 
 
 
@@ -97,19 +98,14 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
 
             if student_row:
                 if bcrypt.check_password_hash(student_row.student_password, student_password):
-                    # if student_id not in session:
-                    #     session[student_id] = {
-                    #         "SID": student_row.SID,
-                    #         "student_id": student_row.student_id,
-                    #         "student_password": student_row.student_password,
-                    #         "student_wallet_address": student_row.student_wallet_address,
-                    #         "student_private_key": student_row.student_private_key,
-                    #         "student_mnemonic": student_row.student_mnemonic,
-                    #         "student_deployed_app_id": student_row.student_deployed_app_id
-                    #     }
-                
-                    # print("Session data after login:", session)
-                    return jsonify({"Success": "User Logged In !!"}), 200
+
+                    # Write the logic that when user logs in successfully then check whether there is any previous data written in blockchain
+                    max_question_index , question_answer_data = get_crash_exam_details(student_id=student_id)
+
+                    return jsonify({
+                        "max_question_number" : max_question_index,
+                        "question_answer_data" : question_answer_data
+                    }), 200
                 else:
                     return jsonify({"Error": "Incorrect password"}), 400
             else:
@@ -152,6 +148,87 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
             return jsonify({
                 "Error" : "Error generating and funding account"
             }) , 400
+
+
+    
+    def get_crash_exam_details(student_id):
+        """
+        This functions checks if software crashed while user was giving exam and returns the question index number
+        where the user left the exam.
+        """
+        try:
+
+            # Get the deployed application ID from Student's ID
+
+            student_row = Student.query.filter_by(student_id=student_id).first()
+
+            if student_row:
+
+                application_id = student_row.student_deployed_app_id
+
+
+                if application_id:
+                    max_question_number = 0
+                    # We are picking wallet address and appid from deploy locale file which is imported in this folder
+                    question_answer_data = {}
+                    response = Blockchain_Metadata.Indexer_Client.search_transactions(
+                        application_id=application_id
+                    )
+                    
+                    all_transactions = response["transactions"]
+
+                    for single_transaction in all_transactions:
+                        if "global-state-delta" in single_transaction:
+                            global_state_delta = single_transaction["global-state-delta"]
+                            for single_delta in global_state_delta:
+                                try:
+                                    attribute = single_delta.get("key")
+                                    value = single_delta.get("value").get("bytes")
+                                    decoded_attribute = base64.b64decode(attribute).decode("utf-8")
+                                    decoded_value = base64.b64decode(value).decode("utf-8")
+                                    
+                                    # Since sequentially data is retrieved if user has selected multiple answer for same question traversing back and forth then
+                                    # The latest answer will be overwritten automatically
+                                    if (
+                                        decoded_attribute == "global_que_ans"
+                                        and value.strip() != "-"
+                                    ):
+                                        
+                                        question_num, answer = decoded_value.strip().split("-")
+                                        
+
+                                        question_num = question_num.strip()
+                                        if question_num.isdigit():
+                                            question_num = int(question_num)
+
+                                            # Apply the logic to replace the maximum of question number 
+                                            if question_num > max_question_number:
+
+                                                max_question_number = question_num
+                                                
+
+                                            # This logic is for creating dicitonary of question and answers ex.{"1" : "B"} 
+                                            
+                                            question_answer_data[str(question_num)] = (
+                                                answer.strip()
+                                            )
+                                except:
+                                    continue
+                    
+                    return (max_question_number ,question_answer_data)
+                else:
+                    return jsonify({
+                        "Error" : "Deployed application not found !!!"
+                    }) , 400 
+            else:
+                return jsonify({
+                    "Error" : "Student ID not found !!!"
+                }) , 400
+        except Exception as e:
+            return jsonify({
+                "Error" : str(e)
+            }) , 400
+ 
     
     def generate_and_fund_account():
         try:

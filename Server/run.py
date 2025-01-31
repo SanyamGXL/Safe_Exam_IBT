@@ -1,11 +1,11 @@
 from flask import session , jsonify , request
-from app import create_app
+from app import create_app , db
 from Metadata import Blockchain_Metadata , Exam_metadata
 import algokit_utils
 from Blockchain.artifact_file import HelloWorldClient
 import threading
 import time
-from models import Student
+from models import Student , Exam_Data
 from collections import deque
 
 class QUEUE:
@@ -47,13 +47,56 @@ class QUEUE:
                 )
                 transaction_id = response.tx_id
                 print("Transaction ID :-" , transaction_id)
-                sender_wallet = response.tx_info["txn"]["txn"]["snd"]
-                return transaction_id, sender_wallet
-            
+
+                # Also write the question answer data to database
+
+
+                self.write_to_database(
+                    student_id=student_id,
+                    exam_title=exam_title,
+                    city=city,
+                    center=center_name,
+                    booklet=booklet,
+                    start_time=start_time,
+                    question_answer=que_ans,
+                    suspicious_activity=suspicious_activity_detected,
+                    end_time=end_time,
+                    transaction_id=transaction_id
+                )
+
+
+
             # Retry logic if transaction fails to get written
             except Exception as e :
-                self.Transactions_Queue[0] = json_data
+                self.Transactions_Queue.appendleft(json_data)
+
             
+        def write_to_database(self, student_id , exam_title , city , center , booklet , start_time , question_answer , suspicious_activity , end_time , transaction_id):
+            try :
+
+                with app.app_context():
+
+                    new_exam_data = Exam_Data(
+                        student_id = student_id,
+                        exam_title = exam_title,
+                        city = city,
+                        center = center,
+                        booklet = booklet,
+                        start_time = start_time,
+                        question_answer = question_answer,
+                        suspicious_activity = suspicious_activity,
+                        end_time = end_time,
+                        transaction_id = transaction_id
+                    )
+
+                    db.session.add(new_exam_data)
+                    db.session.commit()
+                    print("Data writtent to database !!!")
+
+            except Exception as e:
+                print("Error writing Exam data to database :-\n" , e)
+
+
 
 
 app = create_app()

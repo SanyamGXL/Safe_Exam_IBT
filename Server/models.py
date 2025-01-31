@@ -21,3 +21,20 @@ class Student(db.Model , UserMixin):
         return self.SID
     
 
+class Exam_Data(db.Model):
+
+    __tablename__ = "exam"
+
+    EID = db.Column(db.Integer , primary_key = True , autoincrement = True)
+    student_id = db.Column(db.String, nullable=False, unique=False) # Since one student ID can write multiple answers
+    exam_title = db.Column(db.String , nullable = False)
+    city = db.Column(db.String , nullable = False)
+    center = db.Column(db.String , nullable = False)
+    booklet = db.Column(db.String , nullable = False)
+    start_time = db.Column(db.String , nullable = False)
+    question_answer = db.Column(db.String , nullable = False)
+    suspicious_activity = db.Column(db.String , nullable = False)
+    end_time = db.Column(db.String , nullable = False)
+    transaction_id = db.Column(db.String , nullable = False)
+
+

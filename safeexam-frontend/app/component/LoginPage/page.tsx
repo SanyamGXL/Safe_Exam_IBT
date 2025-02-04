@@ -25,7 +25,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
-  const [snackbarStatus, setSnackbarStatus] = useState<"success" | "error">(
+  const [snackbarStatus, setSnackbarStatus] = useState<"success" | "error" | "warning">(
     "success"
   );
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
@@ -42,6 +42,7 @@ export default function LoginPage() {
       router.push("/QuizPage");
     } catch (error) {
       setErrorMessage("Error navigating to QuizPage:");
+      console.error(error);
     }
   };
 
@@ -61,26 +62,48 @@ export default function LoginPage() {
         },
         body: formData,
       });
-      console.log("Login Response:",response);
+      console.log("Login Response:", response);
+      const loginData = await response.json();
       if (response.ok) {
         const start_time = Math.floor(Date.now() / 1000);
-        const studentId = localStorage.setItem("student_id", student_id);
-        const startTime = localStorage.setItem("start_time", start_time.toString());
-        console.log("Student_id:",{studentId},"Start_time",{startTime})
-        const loginData = await response.json();
-        console.log("Login Response:",loginData);
-        if (loginData.Success) {
-          setLoginResponse(`Welcome, ${loginData.student_id || "Student"}!`);
+        localStorage.setItem("student_id", student_id);
+        localStorage.setItem("start_time", start_time.toString());
+        console.log("Student_id:", student_id, "Start_time:", start_time);
+        console.log("Login Response:", loginData);
+        if (loginData) {
+          console.log("Success");
+          setLoginResponse(`Welcome, ${student_id || "Student"}!`);
           setSnackbarStatus("success");
           setErrorMessage(null);
           setSnackbarOpen(true);
           setDialogOpen(true);
-        } else if (loginData.Error) {
-          setErrorMessage(loginData.Error);
-          setSnackbarStatus("error");
-          setLoginResponse(null);
-          setSnackbarOpen(true);
+          if (
+            loginData.max_question_number > 0 &&
+            loginData.question_answer_data
+          ) {
+            localStorage.setItem(
+              "max_question_number",
+              loginData.max_question_number
+            );
+            localStorage.setItem(
+              "question_answer_data",
+              JSON.stringify(loginData.question_answer_data)
+            );
+            setDialogOpen(true);
+          } else {
+            setDialogOpen(true);
+          }
         }
+      } else if (loginData.Error) {
+        setErrorMessage(loginData.Error);
+        setSnackbarStatus("error");
+        setLoginResponse(null);
+        setSnackbarOpen(true);
+      } else if (loginData.Status) {
+        setErrorMessage(loginData.Status);
+        setSnackbarStatus("warning");
+        setLoginResponse(null);
+        setSnackbarOpen(true);
       } else {
         setLoginResponse(null);
         setErrorMessage("Login failed. Please check your credentials.");
@@ -176,15 +199,18 @@ export default function LoginPage() {
 
         <AlertDialog
           open={dialogOpen}
-          title="Start Exam?"
-          content="Are you sure you want to start the exam? Once started, you cannot go back."
+          title={loginResponse || "Start Exam?"}
+          content={
+            loginResponse
+              ? "You have a resume exam. Do you want to continue?"
+              : "Are you sure you want to start the exam? Once started, you cannot go back."
+          }
           agreeText="Yes, Start"
           disagreeText="Cancel"
           onAgree={handleDialogConfirm}
           onDisagree={handleDialogClose}
           onClose={handleDialogClose}
         />
-        
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-const url = "https://8da5-2409-40c0-236-825a-1952-b086-18ec-e09b.ngrok-free.app/"
+const url = "https://29ad-2405-201-200a-f0a7-10f0-dd42-3bce-a13f.ngrok-free.app/"
 export const LoginUrl = `${url}login`
 export const ExamMetadata = `${url}get_exam_metadata`
 export const WriteBlockchain = `${url}write_to_blockchain`

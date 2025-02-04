@@ -49,7 +49,8 @@ export default function QuizPage() {
   const [snackbarStatus, setSnackbarStatus] = useState<"success" | "error">(
     "success"
   );
-  const [timeLeft, setTimeLeft] = useState(100);
+  const [timeLeft, setTimeLeft] = useState(120);
+  const [previousAnswers, setPreviousAnswers] = useState<string[]>([]);
   const router = useRouter();
   const handleCloseSnackbar = () => setSnackbarOpen(false);
 
@@ -80,8 +81,61 @@ export default function QuizPage() {
         question_paper: data.question_paper,
       });
       setQuestions(data.question_paper);
-      setSelectedAnswers(Array(data.question_paper.length).fill(-1));
+      setPreviousAnswers(Array(data.question_paper.length).fill("-"));
+      const maxQueNo = localStorage.getItem("max_question_number");
+      const queAnsData = localStorage.getItem("question_answer_data");
+      
+      console.log("Resume:", maxQueNo, queAnsData);
+
+      const initialAnswers = Array(data.question_paper.length).fill(-1);
+      let lastQuestionIndex = 0;
+
+      if (maxQueNo && queAnsData) {
+        try {
+          const parsedMaxQueNo = parseInt(maxQueNo, 10);
+          const parsedQueAnsData = JSON.parse(queAnsData);
+          const prevAnswers = Array(data.question_paper.length).fill("-");
+          Object.entries(parsedQueAnsData).forEach(([questionNumber, answer]) => {
+            const index = parseInt(questionNumber) - 1;
+            const answerIndex = ["A", "B", "C", "D"].indexOf((answer as string).toUpperCase());
+            if (index >= 0 && index < initialAnswers.length && answerIndex !== -1) {
+              prevAnswers[index] = answer;
+              initialAnswers[index] = answerIndex;
+            }
+            setPreviousAnswers(prevAnswers); 
+            lastQuestionIndex = parsedMaxQueNo - 1;
+            lastQuestionIndex = Math.min(lastQuestionIndex, data.question_paper.length - 1);
+            const newInteracted = new Set(Array.from({ length: parsedMaxQueNo }, (_, i) => i));
+            setInteractedQuestions(newInteracted);
+          });
+        } catch (error) {
+          console.error("Error parsing resume data:", error);
+        }
+      }
+      setSelectedAnswers(initialAnswers);
+      setQueno(lastQuestionIndex);
       setLoading(false);
+      
+      // const maxQueNo = maxQueNoString ? parseInt(maxQueNoString, 10) : null;
+      // const QueAnsData = QueAnsDataString ? JSON.parse(QueAnsDataString) : null;
+      // console.log("ResumeDataParse:", maxQueNo,QueAnsData);
+      
+      // if (maxQueNo !== null && QueAnsData !== null && Array.isArray(QueAnsData)) {
+      //   const lastQuestionIndex = maxQueNo - 1;
+      //   setQueno(lastQuestionIndex);
+      //   console.log("lastQuestionIndex:", maxQueNo, QueAnsData);
+      
+      //   const answers = Array(data.question_paper.length).fill(-1);
+      //   QueAnsData.forEach((answer: string, index: number) => {
+      //     const optionIndex = ["A", "B", "C", "D"].indexOf(answer);
+      //     if (optionIndex !== -1) {
+      //       answers[index] = optionIndex;
+      //     }
+      //   });
+      //   setSelectedAnswers(answers);
+      // } else {
+      //   setSelectedAnswers(Array(data.question_paper.length).fill(-1));
+      // }
     } catch (error) {
       setErrorMessage(`Error fetching questions: ${error}`);
       setSnackbarStatus("error");
@@ -100,6 +154,10 @@ export default function QuizPage() {
     }
     const currentExam = examdata; 
     const answerLetter = String.fromCharCode(65 + selectedAnswers[questionIndex]);
+    if (previousAnswers[questionIndex] === answerLetter && !isFinalSubmit) {
+      console.log(`Skipping write for question ${questionIndex + 1}, answer unchanged.`);
+      return;
+    }
     const blockchainPayload: BlockchainData = {
       student_id: localStorage.getItem("student_id") || "-",
       start_time: localStorage.getItem("start_time") || "-",
@@ -131,6 +189,11 @@ export default function QuizPage() {
       setBlockchainData(data);
       setSnackbarStatus("success");
       setSnackbarOpen(true);
+      setPreviousAnswers((prev) => {
+        const updated = [...prev];
+        updated[questionIndex] = answerLetter;
+        return updated;
+      });
     } catch (error:any) {
       setErrorMessage(`Blockchain write error: ${error.message}`);
       setSnackbarStatus("error");
@@ -189,15 +252,13 @@ export default function QuizPage() {
   useEffect(() => {
     const initializeQuiz = async () => {
       await loadQuestions();
-      startTimer();
     };
-  
+    let timer: NodeJS.Timeout;
     const startTimer = () => {
-      const timer = setInterval(() => {
+       timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            // setTimeout(() => router.push("/LastPage"), 0); 
             return 0;
           }
           return prev - 1;
@@ -207,11 +268,21 @@ export default function QuizPage() {
     };
   
     initializeQuiz();
+    startTimer();
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [router]); 
+
+  useEffect(() => {
+    if (timeLeft === 0) {
+      router.push("/LastPage");
+    }
+  }, [timeLeft, router]);
   
 
   const currentQuestion = questions[queno];
-  const progressPercentage = (timeLeft / 100) * 100;
+  const progressPercentage = (timeLeft / 120) * 100;
   const progressColor = timeLeft <= 30 ? "error" : "success";
   
   return (
@@ -310,7 +381,7 @@ export default function QuizPage() {
         <CustomSnackbar
           open={snackbarOpen}
           onClose={handleCloseSnackbar}
-          message={errorMessage || "Questions loaded successfully!"}
+          message={errorMessage || "Answer submitted successfully!"}
           severity={snackbarStatus}
         />
         <AlertDialog

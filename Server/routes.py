@@ -102,10 +102,13 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                     # Write the logic that when user logs in successfully then check whether there is any previous data written in blockchain
                     max_question_index , question_answer_data = get_crash_exam_details(student_id=student_id)
 
-                    return jsonify({
-                        "max_question_number" : max_question_index,
-                        "question_answer_data" : question_answer_data
-                    }), 200
+                    if max_question_index == -1 and question_answer_data == -1:
+                        return jsonify({"Status": "Exam Completed"}), 400
+                    else:
+                        return jsonify({
+                            "max_question_number" : max_question_index,
+                            "question_answer_data" : question_answer_data
+                        }), 200
                 else:
                     return jsonify({"Error": "Incorrect password"}), 400
             else:
@@ -117,13 +120,10 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
     @app.route("/get_exam_metadata" , methods = ["GET"])
     def get_question_paper():
         try:
-            question_paper_dir = "Multisign_question_paper/question_paper.json"
-            if os.path.exists(question_paper_dir):
-                with open(question_paper_dir , "r") as f:
-                    question_paper = json.load(fp=f)
+            if Exam_metadata.question_paper:
 
                     return jsonify({
-                        "question_paper" :question_paper,
+                        "question_paper" :Exam_metadata.question_paper,
                         "Exam_Title" : Exam_metadata.Exam_title,
                         "City" : Exam_metadata.City,
                         "Center" : Exam_metadata.Center,
@@ -215,7 +215,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                                 except:
                                     continue
                     
-                    return (max_question_number ,question_answer_data)
+                    return (max_question_number ,question_answer_data) if max_question_number < len(Exam_metadata.question_paper) else (-1 , -1)
                 else:
                     return jsonify({
                         "Error" : "Deployed application not found !!!"

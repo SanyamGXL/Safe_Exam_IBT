@@ -14,7 +14,7 @@ class QUEUE:
             self.Transactions_Queue = deque()
 
         def write_transaction(self , json_data):
-
+            
             student_id = json_data.get("student_id", "-")
             exam_title = Exam_metadata.Exam_title
             city = Exam_metadata.City
@@ -25,7 +25,7 @@ class QUEUE:
             suspicious_activity_detected = json_data.get("suspicious_activity_detected", "-")
             end_time = json_data.get("end_time", "-")
             user_mnemonic = json_data.get("user_mnemonic", "-")
-
+            
 
             try:
                 deployer = algokit_utils.get_account_from_mnemonic(user_mnemonic)

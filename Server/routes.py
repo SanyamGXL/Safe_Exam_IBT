@@ -1,7 +1,7 @@
 from flask import Flask , request , jsonify , render_template , session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from models import Student
+from models import Student , Exam_Data
 from algosdk import account , transaction
 from algokit_utils import account as  algokit_accounts
 from algosdk.v2client.algod import AlgodClient
@@ -100,11 +100,12 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 if bcrypt.check_password_hash(student_row.student_password, student_password):
 
                     # Write the logic that when user logs in successfully then check whether there is any previous data written in blockchain
-                    max_question_index , question_answer_data = get_crash_exam_details(student_id=student_id)
-
+                    max_question_index , question_answer_data = get_crash_exam_from_database(student_id=student_id)
+                    print(max_question_index , question_answer_data)
                     if max_question_index == -1 and question_answer_data == -1:
                         return jsonify({"Status": "Exam Completed"}), 400
                     else:
+                        
                         return jsonify({
                             "max_question_number" : max_question_index,
                             "question_answer_data" : question_answer_data
@@ -149,6 +150,35 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 "Error" : "Error generating and funding account"
             }) , 400
 
+
+
+    def get_crash_exam_from_database(student_id):
+        try:
+            exam_data_all_rows = Exam_Data.query.filter_by(student_id=student_id).all()
+            max_index = 0
+            resume_data = {}
+
+            if exam_data_all_rows:
+                for row in exam_data_all_rows:
+                    try:
+                        question_number , option = str(row.question_answer).split("-")
+                    except:
+                        continue
+                    if int(question_number) > max_index :
+                        max_index = int(question_number)
+                    
+                    resume_data[question_number] = option
+                
+                return (max_index , resume_data) if max_index < Exam_metadata.total_questions else (-1,-11)
+            else:
+                return jsonify({
+                "Error" : "No records found"
+            })
+
+        except Exception as e:
+            return jsonify({
+                "Error" : str(e)
+            })
 
     
     def get_crash_exam_details(student_id):
@@ -215,7 +245,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                                 except:
                                     continue
                     
-                    return (max_question_number ,question_answer_data) if max_question_number < len(Exam_metadata.question_paper) else (-1 , -1)
+                    return (max_question_number ,question_answer_data) if max_question_number < Exam_metadata.total_questions else (-1 , -1)
                 else:
                     return jsonify({
                         "Error" : "Deployed application not found !!!"
@@ -228,8 +258,6 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
             return jsonify({
                 "Error" : str(e)
             }) , 400
- 
-    
     def generate_and_fund_account():
         try:
             # Master account for funding

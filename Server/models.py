@@ -36,5 +36,3 @@ class Exam_Data(db.Model):
     suspicious_activity = db.Column(db.String , nullable = False)
     end_time = db.Column(db.String , nullable = False)
     transaction_id = db.Column(db.String , nullable = False)
-
-

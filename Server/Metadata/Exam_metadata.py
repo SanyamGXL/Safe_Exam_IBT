@@ -17,3 +17,7 @@ if os.path.exists(question_paper_dir):
 
 else:
     question_paper = [] # That means multisign transaction is not found
+
+total_questions = len(question_paper)
+
+

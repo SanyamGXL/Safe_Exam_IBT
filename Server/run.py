@@ -14,7 +14,6 @@ class QUEUE:
             self.Transactions_Queue = deque()
 
         def write_transaction(self , json_data):
-            
             student_id = json_data.get("student_id", "-")
             exam_title = Exam_metadata.Exam_title
             city = Exam_metadata.City
@@ -24,9 +23,16 @@ class QUEUE:
             que_ans = json_data.get("que_ans", "-")
             suspicious_activity_detected = json_data.get("suspicious_activity_detected", "-")
             end_time = json_data.get("end_time", "-")
-            user_mnemonic = json_data.get("user_mnemonic", "-")
-            
+            # Get the user mnemonic
+            with app.app_context():
+                student_row = Student.query.filter_by(student_id = student_id).first()
 
+                if student_row:
+                    user_mnemonic = student_row.student_mnemonic
+                else:
+                    print("Student not found !!!")
+                    return -1
+            
             try:
                 deployer = algokit_utils.get_account_from_mnemonic(user_mnemonic)
 
@@ -48,50 +54,79 @@ class QUEUE:
                 transaction_id = response.tx_id
                 print("Transaction ID :-" , transaction_id)
 
-                # Also write the question answer data to database
 
+                with app.app_context():
 
-                self.write_to_database(
-                    student_id=student_id,
-                    exam_title=exam_title,
-                    city=city,
-                    center=center_name,
-                    booklet=booklet,
-                    start_time=start_time,
-                    question_answer=que_ans,
-                    suspicious_activity=suspicious_activity_detected,
-                    end_time=end_time,
-                    transaction_id=transaction_id
-                )
+                    # Now also update the database for transaction ID of a particular row
 
+                    EID = json_data['EID']
+                    row_to_be_updated = Exam_Data.query.filter_by(EID=EID).first()
 
-
+                    if row_to_be_updated:
+                        row_to_be_updated.transaction_id = transaction_id
+                        db.session.commit()
+                        print("Row updated with Transaction ID !!")
+                    else:
+                        print("Row not found in database")
+            
             # Retry logic if transaction fails to get written
             except Exception as e :
                 self.Transactions_Queue.appendleft(json_data)
 
             
-        def write_to_database(self, student_id , exam_title , city , center , booklet , start_time , question_answer , suspicious_activity , end_time , transaction_id):
-            try :
+        def write_to_database(self,json_data):
+            try:
+                student_id = json_data.get("student_id", "-")
+                exam_title = Exam_metadata.Exam_title
+                city = Exam_metadata.City
+                center_name = Exam_metadata.Center
+                booklet = Exam_metadata.booklet
+                start_time = json_data.get("start_time", "-")
+                que_ans = json_data.get("que_ans", "-")
+                suspicious_activity_detected = json_data.get("suspicious_activity_detected", "-")
+                end_time = json_data.get("end_time", "-")
 
+                # Check if this response of user is the last response
+                # and matches the highest question number
+                question_number , option = que_ans.split("-")
+                if int(question_number) >= Exam_metadata.total_questions:
+                    # Get all the data of the particular student and 
+                    # Send it to be written to blockchain
+                    all_rows = Exam_Data.query.filter_by(student_id=student_id).all()
+                    all_data = []
+                    for row in all_rows:
+                        temp_json = {
+                            "EID" : row.EID,
+                            "student_id" : row.student_id,
+                            "exam_title" : row.exam_title,
+                            "city" : row.city,
+                            "center" : row.center,
+                            "booklet" : row.booklet,
+                            "start_time" : row.start_time,
+                            "question_answer" : row.question_answer,
+                            "suspicious_activity" : row.suspicious_activity,
+                            "end_time" : row.end_time,
+                        }
+
+                        self.Transactions_Queue.append(temp_json)
+                
                 with app.app_context():
-
                     new_exam_data = Exam_Data(
                         student_id = student_id,
                         exam_title = exam_title,
                         city = city,
-                        center = center,
+                        center = center_name,
                         booklet = booklet,
                         start_time = start_time,
-                        question_answer = question_answer,
-                        suspicious_activity = suspicious_activity,
+                        question_answer = que_ans,
+                        suspicious_activity = suspicious_activity_detected,
                         end_time = end_time,
-                        transaction_id = transaction_id
+                        transaction_id = "-", # Transaction ID will be filled when we actually write the transaction to blockchain
                     )
 
                     db.session.add(new_exam_data)
                     db.session.commit()
-                    print("Data writtent to database !!!")
+                    print("Data written to database !!!")
 
             except Exception as e:
                 print("Error writing Exam data to database :-\n" , e)
@@ -104,6 +139,7 @@ app = create_app()
 
 
 
+
 @app.route("/write_to_blockchain" , methods = ["POST"])
 def write_to_blockchain():
 
@@ -112,27 +148,12 @@ def write_to_blockchain():
 
     
     if student_id:
-        student_row = Student.query.filter_by(student_id = student_id).first()
-        
-        if student_row:
-            student_menmonic = student_row.student_mnemonic
+        # Add the data to database
+        queue_obj.write_to_database(json_data=student_json_data)
 
-            student_json_data.update({
-                "user_mnemonic" : student_menmonic,
-            })
-
-
-            queue_obj.Transactions_Queue.appendleft(student_json_data)
-            
-
-            return jsonify({
-                "Success" : "Data Added in Queue"
-            }) , 200
-        else:
-            print("ID not found in session")
-            return jsonify({
-                "Error" : "ID not found in session , Login Again !!!"
-            }) , 400
+        return jsonify({
+            "Success" : "Data Added in Queue"
+        }) , 200
         
     else:
         print("Student ID is null!!!")

@@ -100,8 +100,8 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 if bcrypt.check_password_hash(student_row.student_password, student_password):
 
                     # Write the logic that when user logs in successfully then check whether there is any previous data written in blockchain
+                    print(get_crash_exam_from_database(student_id=student_id))
                     max_question_index , question_answer_data = get_crash_exam_from_database(student_id=student_id)
-                    print(max_question_index , question_answer_data)
                     if max_question_index == -1 and question_answer_data == -1:
                         return jsonify({"Status": "Exam Completed"}), 400
                     else:
@@ -154,7 +154,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
 
     def get_crash_exam_from_database(student_id):
         try:
-            exam_data_all_rows = Exam_Data.query.filter_by(student_id=student_id).all()
+            exam_data_all_rows = Exam_Data.query.filter_by(student_id=student_id).order_by(Exam_Data.EID).all()
             max_index = 0
             resume_data = {}
 
@@ -168,17 +168,15 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                         max_index = int(question_number)
                     
                     resume_data[question_number] = option
-                
-                return (max_index , resume_data) if max_index < Exam_metadata.total_questions else (-1,-11)
+                return (max_index , resume_data) if max_index < Exam_metadata.total_questions else (-1,-1)
             else:
-                return jsonify({
-                "Error" : "No records found"
-            })
+                # If no records are found then simply return empty resume data with index as 1
+                return (1 , {})
 
         except Exception as e:
-            return jsonify({
-                "Error" : str(e)
-            })
+            # If error occurs then also return resume data with index as 1
+            return jsonify(1, {})
+        
 
     
     def get_crash_exam_details(student_id):

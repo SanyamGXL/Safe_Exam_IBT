@@ -7,6 +7,7 @@ import threading
 import time
 from models import Student , Exam_Data
 from collections import deque
+from sqlalchemy import desc
 
 class QUEUE:
 
@@ -88,28 +89,9 @@ class QUEUE:
 
                 # Check if this response of user is the last response
                 # and matches the highest question number
-                question_number , option = que_ans.split("-")
-                if int(question_number) >= Exam_metadata.total_questions:
-                    # Get all the data of the particular student and 
-                    # Send it to be written to blockchain
-                    all_rows = Exam_Data.query.filter_by(student_id=student_id).all()
-                    all_data = []
-                    for row in all_rows:
-                        temp_json = {
-                            "EID" : row.EID,
-                            "student_id" : row.student_id,
-                            "exam_title" : row.exam_title,
-                            "city" : row.city,
-                            "center" : row.center,
-                            "booklet" : row.booklet,
-                            "start_time" : row.start_time,
-                            "question_answer" : row.question_answer,
-                            "suspicious_activity" : row.suspicious_activity,
-                            "end_time" : row.end_time,
-                        }
-
-                        self.Transactions_Queue.append(temp_json)
                 
+                
+                                
                 with app.app_context():
                     new_exam_data = Exam_Data(
                         student_id = student_id,
@@ -126,6 +108,27 @@ class QUEUE:
 
                     db.session.add(new_exam_data)
                     db.session.commit()
+
+                    question_number , option = que_ans.split("-")
+                    if int(question_number) >= Exam_metadata.total_questions:
+                        # Get all the data of the particular student and 
+                        # Send it to be written to blockchain
+                        all_rows = Exam_Data.query.filter_by(student_id=student_id).order_by(desc(Exam_Data.EID)).all()
+                        for row in all_rows:
+                            temp_json = {
+                                "EID" : row.EID,
+                                "student_id" : row.student_id,
+                                "exam_title" : row.exam_title,
+                                "city" : row.city,
+                                "center" : row.center,
+                                "booklet" : row.booklet,
+                                "start_time" : row.start_time,
+                                "que_ans" : row.question_answer,
+                                "suspicious_activity_detected" : row.suspicious_activity,
+                                "end_time" : row.end_time,
+                            }
+                            self.Transactions_Queue.append(temp_json)
+                        print("Queue after update :-" , self.Transactions_Queue)
                     print("Data written to database !!!")
 
             except Exception as e:
@@ -170,6 +173,7 @@ def transaction_writing_thread():
         if queue_obj.Transactions_Queue:
             task_json_data = queue_obj.Transactions_Queue.pop()
             if task_json_data:
+                
                 queue_obj.write_transaction(task_json_data)
 
 if __name__ == "__main__":

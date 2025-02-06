@@ -45,4 +45,28 @@ def get_crash_exam_details(student_id):
 
 
 
-print(get_crash_exam_details(student_id="ssk"))
+def get_all_rows(student_id):
+    with app.app_context():
+        all_rows = Exam_Data.query.filter_by(student_id=student_id).all()
+        for row in all_rows:
+            temp_json = {
+                "EID" : row.EID,
+                "student_id" : row.student_id,
+                "exam_title" : row.exam_title,
+                "city" : row.city,
+                "center" : row.center,
+                "booklet" : row.booklet,
+                "start_time" : row.start_time,
+                "que_ans" : row.question_answer,
+                "suspicious_activity_detected" : row.suspicious_activity,
+                "end_time" : row.end_time,
+            }
+            print(temp_json)
+
+
+get_all_rows(student_id="qqq")
+# print(get_crash_exam_details(student_id="ssk"))
+
+
+
+([{'EID': 11, 'student_id': 'ppp', 'exam_title': 'UPSC', 'city': 'Delhi', 'center': 'AIU', 'booklet': 'A', 'start_time': '1738834160', 'que_ans': '1-B', 'suspicious_activity_detected': '-', 'end_time': '-'}, {'EID': 12, 'student_id': 'ppp', 'exam_title': 'UPSC', 'city': 'Delhi', 'center': 'AIU', 'booklet': 'A', 'start_time': '1738834160', 'que_ans': '2-C', 'suspicious_activity_detected': '-', 'end_time': '-'}, {'EID': 13, 'student_id': 'ppp', 'exam_title': 'UPSC', 'city': 'Delhi', 'center': 'AIU', 'booklet': 'A', 'start_time': '1738834160', 'que_ans': '3-B', 'suspicious_activity_detected': '-', 'end_time': '-'}, {'EID': 14, 'student_id': 'ppp', 'exam_title': 'UPSC', 'city': 'Delhi', 'center': 'AIU', 'booklet': 'A', 'start_time': '1738834160', 'que_ans': '4-A', 'suspicious_activity_detected': '-', 'end_time': '-'}])

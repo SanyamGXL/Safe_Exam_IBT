@@ -6,6 +6,7 @@ import AlertDialog from "../common/DialogBox";
 import { ExamMetadata,WriteBlockchain } from "../apiUrl/page";
 import CustomSnackbar from "../common/SnackBar";
 import { useRouter } from "next/navigation";
+import { enterFullScreen, ensureFullScreen } from "@/app/common/fullScreen";
 
 interface ExamData {
   Exam_Title: string;
@@ -51,8 +52,62 @@ export default function QuizPage() {
   );
   const [timeLeft, setTimeLeft] = useState(120);
   const [previousAnswers, setPreviousAnswers] = useState<string[]>([]);
+  const [switchTabDialogOpen, setSwitchTabDialogOpen] = useState(false);
   const router = useRouter();
   const handleCloseSnackbar = () => setSnackbarOpen(false);
+  const [tabSwitchAnomalies, setTabSwitchAnomalies] = useState<
+  { timestamp: string; event: string }[]
+>([]);
+const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false);
+
+
+  useEffect(() => {
+    setFullscreenDialogOpen(true);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        const anomaly = {
+          timestamp: new Date().toLocaleString(), 
+          event: "Tab switched",
+        };
+  
+        setTabSwitchAnomalies((prevAnomalies) => {
+          const updatedAnomalies = [...prevAnomalies, anomaly];
+          console.log("Tab Switch Anomalies:", JSON.stringify(updatedAnomalies, null, 2));
+          return updatedAnomalies;
+      });
+        setSwitchTabDialogOpen(true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  const handleFullscreenConfirm = () => {
+      enterFullScreen();
+      ensureFullScreen();
+      setFullscreenDialogOpen(false); 
+    };
+
+  const startTimer = () =>{
+    if (timeLeft > 0) return;
+    let timer: NodeJS.Timeout;
+       timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => {
+      if (timer) clearInterval(timer);
+    };
+  };
 
   const loadQuestions = async () => {
     setLoading(true);
@@ -81,6 +136,7 @@ export default function QuizPage() {
         question_paper: data.question_paper,
       });
       setQuestions(data.question_paper);
+      startTimer();
       setPreviousAnswers(Array(data.question_paper.length).fill("-"));
       const maxQueNo = localStorage.getItem("max_question_number");
       const queAnsData = localStorage.getItem("question_answer_data");
@@ -234,6 +290,14 @@ export default function QuizPage() {
     setSelectedAnswers(updatedAnswers);
   };
 
+  const handleTabSwitchClose = () => {
+    setSwitchTabDialogOpen(false);
+  };
+
+  const handleContinueExam = () => {
+    setSwitchTabDialogOpen(false);
+  };
+
   const handleDialogClose = () => {
     setDialogOpen(false);
   };
@@ -253,25 +317,7 @@ export default function QuizPage() {
     const initializeQuiz = async () => {
       await loadQuestions();
     };
-    let timer: NodeJS.Timeout;
-    const startTimer = () => {
-       timer = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer); 
-    };
-  
-    initializeQuiz();
-    startTimer();
-    return () => {
-      if (timer) clearInterval(timer);
-    };
+      initializeQuiz();
   }, [router]); 
 
   useEffect(() => {
@@ -403,6 +449,25 @@ export default function QuizPage() {
           }
           onClose={handleDialogClose}
         />
+        <AlertDialog
+          open={fullscreenDialogOpen}
+          title="Enter Fullscreen?"
+          content="To ensure a distraction-free environment, we recommend entering fullscreen. Do you want to proceed?"
+          agreeText="Yes, Go Fullscreen"
+          disagreeText=""
+          onAgree={handleFullscreenConfirm}
+          onDisagree={handleDialogClose}
+          onClose={handleDialogClose}
+        />
+         <AlertDialog
+        open={switchTabDialogOpen}
+        title="⚠️Warning: Tab Switch Detected"
+        content="You have switched tabs during the exam. If you switch tabs again, you will be disqualified from the exam!"
+        agreeText="Continue Exam"
+        disagreeText="Cancel"
+        onAgree={handleContinueExam}
+        onClose={handleTabSwitchClose}
+      />
       </div>
     </div>
   );

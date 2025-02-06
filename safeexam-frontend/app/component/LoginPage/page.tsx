@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { TextField, Button, Box, CircularProgress } from "@mui/material";
@@ -29,6 +29,7 @@ export default function LoginPage() {
     "success"
   );
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [maxQuestionNumber, setMaxQuestionNumber] = useState<number>(0);
 
   const handleCloseSnackbar = () => setSnackbarOpen(false);
 
@@ -77,6 +78,7 @@ export default function LoginPage() {
           setErrorMessage(null);
           setSnackbarOpen(true);
           setDialogOpen(true);
+          setMaxQuestionNumber(loginData.max_question_number);
           if (
             loginData.max_question_number > 0 &&
             loginData.question_answer_data
@@ -120,7 +122,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
   return (
     <div
       className="h-screen w-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center"
@@ -201,9 +202,9 @@ export default function LoginPage() {
           open={dialogOpen}
           title={loginResponse || "Start Exam?"}
           content={
-            loginResponse
-              ? "You have a resume exam. Do you want to continue?"
-              : "Are you sure you want to start the exam? Once started, you cannot go back."
+            maxQuestionNumber == 1
+              ? "Are you sure you want to start the exam? Once started, you cannot go back."
+              : "You have a resume exam. Do you want to continue?"
           }
           agreeText="Yes, Start"
           disagreeText="Cancel"

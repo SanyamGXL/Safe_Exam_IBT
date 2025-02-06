@@ -7,6 +7,9 @@ export default function LastPage() {
   const router = useRouter();
 
   const handleGoHome = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    }
     router.push("/"); 
   };
 

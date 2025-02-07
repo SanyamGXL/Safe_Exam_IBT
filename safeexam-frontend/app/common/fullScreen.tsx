@@ -1,6 +1,6 @@
-let originalAlert: any;
-let originalConfirm: any;
-let originalPrompt: any;
+let originalAlert: (message?: unknown) => void;
+let originalConfirm: (message?: string) => boolean;
+let originalPrompt: (message?: string, defaultValue?: string) => string | null;
 
 export const enterFullScreen = () => {
     const elem = document.documentElement as HTMLElement & {
@@ -18,9 +18,9 @@ export const enterFullScreen = () => {
     } else if (elem.msRequestFullscreen) { 
       elem.msRequestFullscreen();
     }
-  };
-  
-  export const ensureFullScreen = () => {
+};
+
+export const ensureFullScreen = () => {
     document.addEventListener("fullscreenchange", () => {
       if (!document.fullscreenElement) {
         enterFullScreen(); 
@@ -31,31 +31,24 @@ export const enterFullScreen = () => {
         enableNotifications();
       }
     });
-  };
+};
 
-  const disableNotifications = () => {
+const disableNotifications = () => {
     console.log("Notifications disabled in full-screen mode");
   
     originalAlert = window.alert;
     originalConfirm = window.confirm;
     originalPrompt = window.prompt;
   
-
     window.alert = () => {};
     window.confirm = () => false;
     window.prompt = () => null;
-  };
-  
-  const enableNotifications = () => {
+};
+
+const enableNotifications = () => {
     console.log("Notifications enabled after exiting full-screen mode");
   
     if (originalAlert) window.alert = originalAlert;
     if (originalConfirm) window.confirm = originalConfirm;
     if (originalPrompt) window.prompt = originalPrompt;
-  };
-  
-
-  
-
-  
-  
+};

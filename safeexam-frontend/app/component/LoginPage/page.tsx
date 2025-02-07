@@ -1,10 +1,10 @@
 "use client";
-import React, { useEffect } from "react";
+import React from "react";
 import Image from "next/image";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { TextField, Button, Box, CircularProgress } from "@mui/material";
 import { useState } from "react";
-import { LoginUrl } from "../../apiUrl/page";
+import { API_URLS } from "../../apiUrl/apiUrl";
 import { useRouter } from "next/navigation";
 import CustomSnackbar from "@/app/common/SnackBar";
 import AlertDialog from "@/app/common/DialogBox";
@@ -21,13 +21,13 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors },
   } = useForm<LoginDetails>();
-  const [loginResponse, setLoginResponse] = useState<any>(null);
+  const [loginResponse, setLoginResponse] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
-  const [snackbarStatus, setSnackbarStatus] = useState<"success" | "error" | "warning">(
-    "success"
-  );
+  const [snackbarStatus, setSnackbarStatus] = useState<
+    "success" | "error" | "warning"
+  >("success");
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [maxQuestionNumber, setMaxQuestionNumber] = useState<number>(0);
 
@@ -56,7 +56,7 @@ export default function LoginPage() {
       const formData = new FormData();
       formData.append("student_id", student_id);
       formData.append("student_password", student_password);
-      const response = await fetch(LoginUrl, {
+      const response = await fetch(API_URLS.LoginUrl, {
         method: "POST",
         headers: {
           "ngrok-skip-browser-warning": "true",
@@ -146,11 +146,11 @@ export default function LoginPage() {
           with the utmost care and securely stored to ensure it stays safe and
           protected every step of the way.{" "}
         </p>
-        <div className="ml-4 mt-[6%]">
+        <div className="ml-6 mt-[4%]">
           <Box
             component="form"
             onSubmit={handleSubmit(onSubmit)}
-            className=" p-2 mt-6 rounded-lg shadow-lg flex flex-col w-[45%] text-base"
+            className="p-4 mt-4 rounded-lg shadow-lg flex flex-col w-[45%] text-base"
           >
             <label className="text-gray-700 mb-1">Enter Username</label>
             <TextField
@@ -191,6 +191,7 @@ export default function LoginPage() {
             </Button>
           </Box>
         </div>
+
         <CustomSnackbar
           open={snackbarOpen}
           onClose={handleCloseSnackbar}

@@ -1,9 +1,9 @@
 "use client";
-import {CircularProgress,Button} from "@mui/material";
-import React, { useEffect } from "react";
+import { CircularProgress, Button } from "@mui/material";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useState } from "react";
 import AlertDialog from "../common/DialogBox";
-import { ExamMetadata,WriteBlockchain } from "../apiUrl/page";
+import { API_URLS } from "../apiUrl/apiUrl";
 import CustomSnackbar from "../common/SnackBar";
 import { useRouter } from "next/navigation";
 import { enterFullScreen, ensureFullScreen } from "@/app/common/fullScreen";
@@ -13,29 +13,31 @@ interface ExamData {
   City: string;
   Center: string;
   Booklet: string;
-  question_paper: { 
-    que: string; 
-    options: string[]; 
-  }[]; 
+  question_paper: {
+    que: string;
+    options: string[];
+  }[];
 }
 
 interface BlockchainData {
-  student_id :string;
-  start_time :string;
-  que_ans :string;
-  exam_title :string;
-  city :string;
-  center_name :string;
-  booklet:string;
-  suspicious_activity_detected :string;
-  end_time :string;
+  student_id: string;
+  start_time: string;
+  que_ans: string;
+  exam_title: string;
+  city: string;
+  center_name: string;
+  booklet: string;
+  suspicious_activity_detected: string;
+  end_time: string;
 }
 
 export default function QuizPage() {
   const [queno, setQueno] = useState(0);
   const [examdata, setExamData] = useState<ExamData | null>(null);
-  const [questions, setQuestions] = useState<{ que: string; options: string[] }[]>([]);
-  const [blockchainData,setBlockchainData] = useState<BlockchainData[]>([]);
+  const [questions, setQuestions] = useState<
+    { que: string; options: string[] }[]
+  >([]);
+  const [blockchainData, setBlockchainData] = useState<BlockchainData[]>([]);
   const [interactedQuestions, setInteractedQuestions] = useState<Set<number>>(
     new Set([0])
   );
@@ -44,7 +46,6 @@ export default function QuizPage() {
   );
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
   const [snackbarStatus, setSnackbarStatus] = useState<"success" | "error">(
@@ -56,63 +57,56 @@ export default function QuizPage() {
   const router = useRouter();
   const handleCloseSnackbar = () => setSnackbarOpen(false);
   const [tabSwitchAnomalies, setTabSwitchAnomalies] = useState<
-  { timestamp: string; event: string }[]
->([]);
-const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false);
-
-
-  useEffect(() => {
-    setFullscreenDialogOpen(true);
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        const anomaly = {
-          timestamp: new Date().toLocaleString(), 
-          event: "Tab switched",
-        };
-  
-        setTabSwitchAnomalies((prevAnomalies) => {
-          const updatedAnomalies = [...prevAnomalies, anomaly];
-          console.log("Tab Switch Anomalies:", JSON.stringify(updatedAnomalies, null, 2));
-          return updatedAnomalies;
-      });
-        setSwitchTabDialogOpen(true);
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
+    BlockchainData[]
+  >([]);
+  const [fullscreenDialogOpen, setFullscreenDialogOpen] =
+    useState<boolean>(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFullscreenConfirm = () => {
-      enterFullScreen();
-      ensureFullScreen();
-      setFullscreenDialogOpen(false); 
-    };
-
-  const startTimer = () =>{
-    if (timeLeft > 0) return;
-    let timer: NodeJS.Timeout;
-       timer = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => {
-      if (timer) clearInterval(timer);
-    };
+    enterFullScreen();
+    ensureFullScreen();
+    setFullscreenDialogOpen(false);
   };
 
-  const loadQuestions = async () => {
-    setLoading(true);
+ const startTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    const storedTimeLeft = localStorage.getItem("remaining_time");
+    const startTime = Date.now();
+    const remainingTime = storedTimeLeft ? parseInt(storedTimeLeft, 10) : 120;
+
+    timerRef.current = setInterval(() => {
+      const currentTime = Date.now();
+      const elapsedTime = Math.floor((currentTime - startTime) / 1000);
+      const newremainingTime = remainingTime - elapsedTime;
+
+      if (newremainingTime <= 0) {
+        clearInterval(timerRef.current!);
+        setTimeLeft(0);
+        localStorage.removeItem("remaining_time");
+        router.push("/LastPage");
+      } else {
+        setTimeLeft(newremainingTime);
+        localStorage.setItem("remaining_time", newremainingTime.toString());
+      }
+    }, 1000);
+  }, [router]);
+
+  useEffect(() => {
+    const handleUnload = () => {
+      localStorage.setItem("remaining_time", timeLeft.toString());
+    };
+  
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [timeLeft]);
+
+  const loadQuestions = useCallback(async () => {
     try {
-      const response = await fetch(ExamMetadata,{
+      const response = await fetch(API_URLS.ExamMetadata, {
         method: "GET",
         headers: {
           "ngrok-skip-browser-warning": "true",
@@ -125,7 +119,11 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
         return;
       }
       const data = await response.json();
-      if (!data || !Array.isArray(data.question_paper) || data.question_paper.length === 0) {
+      if (
+        !data ||
+        !Array.isArray(data.question_paper) ||
+        data.question_paper.length === 0
+      ) {
         throw new Error("Invalid question format or empty response.");
       }
       setExamData({
@@ -140,7 +138,7 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
       setPreviousAnswers(Array(data.question_paper.length).fill("-"));
       const maxQueNo = localStorage.getItem("max_question_number");
       const queAnsData = localStorage.getItem("question_answer_data");
-      
+
       console.log("Resume:", maxQueNo, queAnsData);
 
       const initialAnswers = Array(data.question_paper.length).fill(-1);
@@ -151,70 +149,67 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
           const parsedMaxQueNo = parseInt(maxQueNo, 10);
           const parsedQueAnsData = JSON.parse(queAnsData);
           const prevAnswers = Array(data.question_paper.length).fill("-");
-          Object.entries(parsedQueAnsData).forEach(([questionNumber, answer]) => {
-            const index = parseInt(questionNumber) - 1;
-            const answerIndex = ["A", "B", "C", "D"].indexOf((answer as string).toUpperCase());
-            if (index >= 0 && index < initialAnswers.length && answerIndex !== -1) {
-              prevAnswers[index] = answer;
-              initialAnswers[index] = answerIndex;
+          Object.entries(parsedQueAnsData).forEach(
+            ([questionNumber, answer]) => {
+              const index = parseInt(questionNumber) - 1;
+              const answerIndex = ["A", "B", "C", "D"].indexOf(
+                (answer as string).toUpperCase()
+              );
+              if (
+                index >= 0 &&
+                index < initialAnswers.length &&
+                answerIndex !== -1
+              ) {
+                prevAnswers[index] = answer;
+                initialAnswers[index] = answerIndex;
+              }
+              setPreviousAnswers(prevAnswers);
+              lastQuestionIndex = parsedMaxQueNo - 1;
+              lastQuestionIndex = Math.min(
+                lastQuestionIndex,
+                data.question_paper.length - 1
+              );
+              const newInteracted = new Set(
+                Array.from({ length: parsedMaxQueNo }, (_, i) => i)
+              );
+              setInteractedQuestions(newInteracted);
             }
-            setPreviousAnswers(prevAnswers); 
-            lastQuestionIndex = parsedMaxQueNo - 1;
-            lastQuestionIndex = Math.min(lastQuestionIndex, data.question_paper.length - 1);
-            const newInteracted = new Set(Array.from({ length: parsedMaxQueNo }, (_, i) => i));
-            setInteractedQuestions(newInteracted);
-          });
+          );
         } catch (error) {
           console.error("Error parsing resume data:", error);
         }
       }
       setSelectedAnswers(initialAnswers);
       setQueno(lastQuestionIndex);
-      setLoading(false);
-      
-      // const maxQueNo = maxQueNoString ? parseInt(maxQueNoString, 10) : null;
-      // const QueAnsData = QueAnsDataString ? JSON.parse(QueAnsDataString) : null;
-      // console.log("ResumeDataParse:", maxQueNo,QueAnsData);
-      
-      // if (maxQueNo !== null && QueAnsData !== null && Array.isArray(QueAnsData)) {
-      //   const lastQuestionIndex = maxQueNo - 1;
-      //   setQueno(lastQuestionIndex);
-      //   console.log("lastQuestionIndex:", maxQueNo, QueAnsData);
-      
-      //   const answers = Array(data.question_paper.length).fill(-1);
-      //   QueAnsData.forEach((answer: string, index: number) => {
-      //     const optionIndex = ["A", "B", "C", "D"].indexOf(answer);
-      //     if (optionIndex !== -1) {
-      //       answers[index] = optionIndex;
-      //     }
-      //   });
-      //   setSelectedAnswers(answers);
-      // } else {
-      //   setSelectedAnswers(Array(data.question_paper.length).fill(-1));
-      // }
     } catch (error) {
       setErrorMessage(`Error fetching questions: ${error}`);
       setSnackbarStatus("error");
       setSnackbarOpen(true);
-      setLoading(false);
     }
-  };
-  
+  }, [startTimer]);
 
-  const WriteToBlockchain = async (questionIndex: number,isFinalSubmit = false) =>{
+  const WriteToBlockchain = useCallback(async (
+    questionIndex: number,
+    isFinalSubmit = false,
+    anomaly?: BlockchainData
+  ) => {
     if (!questions.length) {
       setErrorMessage("Exam data not loaded.");
       setSnackbarStatus("error");
       setSnackbarOpen(true);
       return;
     }
-    const currentExam = examdata; 
-    const answerLetter = String.fromCharCode(65 + selectedAnswers[questionIndex]);
+    const currentExam = examdata;
+    const answerLetter = String.fromCharCode(
+      65 + selectedAnswers[questionIndex]
+    );
     if (previousAnswers[questionIndex] === answerLetter && !isFinalSubmit) {
-      console.log(`Skipping write for question ${questionIndex + 1}, answer unchanged.`);
+      console.log(
+        `Skipping write for question ${questionIndex + 1}, answer unchanged.`
+      );
       return;
     }
-    const blockchainPayload: BlockchainData = {
+    const blockchainPayload: BlockchainData = anomaly || {
       student_id: localStorage.getItem("student_id") || "-",
       start_time: localStorage.getItem("start_time") || "-",
       que_ans: `${questionIndex + 1}-${answerLetter}`,
@@ -223,12 +218,12 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
       center_name: currentExam?.Center || "-",
       booklet: currentExam?.Booklet || "-",
       suspicious_activity_detected: "-",
-      end_time:  isFinalSubmit ? (Math.floor(Date.now() / 1000)).toString() : "-"
+      end_time: isFinalSubmit ? Math.floor(Date.now() / 1000).toString() : "-",
     };
-    console.log("blockchainPayload",blockchainPayload)
-    setLoading(true);
+    console.log("blockchainPayload", blockchainPayload);
+    console.log(blockchainData);
     try {
-      const response = await fetch(WriteBlockchain, {
+      const response = await fetch(API_URLS.WriteBlockchain, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -236,11 +231,11 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
         },
         body: JSON.stringify(blockchainPayload),
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to write exam data to blockchain.");
       }
-  
+
       const data: BlockchainData[] = await response.json();
       setBlockchainData(data);
       setSnackbarStatus("success");
@@ -250,15 +245,53 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
         updated[questionIndex] = answerLetter;
         return updated;
       });
-    } catch (error:any) {
-      setErrorMessage(`Blockchain write error: ${error.message}`);
-      setSnackbarStatus("error");
-      setSnackbarOpen(true);
-    } finally {
-      setLoading(false);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setErrorMessage(`Blockchain write error: ${error.message}`);
+        setSnackbarStatus("error");
+        setSnackbarOpen(true);
+      } else {
+        setErrorMessage(`Blockchain write error: Unknown error occurred.`);
+      }
     }
-  };
-  
+  },
+  [questions, examdata, selectedAnswers, previousAnswers,blockchainData]
+);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden" && examdata) {
+        const anomaly: BlockchainData = {
+          student_id: localStorage.getItem("student_id") || "-",
+          start_time: "-",
+          que_ans: "-",
+          exam_title: examdata?.Exam_Title || "-",
+          city: examdata?.City || "-",
+          center_name: examdata?.Center || "-",
+          booklet: examdata?.Booklet || "-",
+          suspicious_activity_detected: `Tab switched on ${new Date().toLocaleString()}`,
+          end_time: "-",
+        };
+
+        setTabSwitchAnomalies((prevAnomalies) => {
+          const updatedAnomalies = [...prevAnomalies, anomaly];
+          console.log(
+            "Tab Switch Anomalies:",
+            JSON.stringify(updatedAnomalies, null, 2)
+          );
+          return updatedAnomalies;
+        });
+        setSwitchTabDialogOpen(true);
+        WriteToBlockchain(queno, false, anomaly);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [tabSwitchAnomalies, examdata,queno,WriteToBlockchain]);
+
 
   const next_page = async () => {
     if (selectedAnswers[queno] === -1) {
@@ -266,7 +299,7 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
       setDialogOpen(true);
       return;
     }
-    await WriteToBlockchain(queno); 
+    await WriteToBlockchain(queno);
     if (queno < questions.length - 1) {
       setQueno(queno + 1);
       setInteractedQuestions((prev) => new Set(prev).add(queno + 1));
@@ -303,6 +336,11 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
   };
 
   const handleSubmitExam = () => {
+    if (selectedAnswers[queno] === -1) {
+      setDialogMode("warning");
+      setDialogOpen(true);
+      return;
+    }
     setDialogMode("confirmation");
     setDialogOpen(true);
   };
@@ -310,27 +348,33 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
   const handleConfirmSubmit = async () => {
     setDialogOpen(true);
     await WriteToBlockchain(queno, true);
+    localStorage.removeItem("student_id");
+    localStorage.removeItem("start_time");
     router.push("/LastPage");
   };
 
   useEffect(() => {
+    setFullscreenDialogOpen(true);
     const initializeQuiz = async () => {
+      const storedTimeLeft = localStorage.getItem("remaining_time");
+      if (storedTimeLeft) {
+        setTimeLeft(parseInt(storedTimeLeft, 10));
+      }
       await loadQuestions();
     };
-      initializeQuiz();
-  }, [router]); 
+    initializeQuiz();
+  }, [loadQuestions]);
 
   useEffect(() => {
     if (timeLeft === 0) {
       router.push("/LastPage");
     }
   }, [timeLeft, router]);
-  
 
   const currentQuestion = questions[queno];
   const progressPercentage = (timeLeft / 120) * 100;
   const progressColor = timeLeft <= 30 ? "error" : "success";
-  
+
   return (
     <div
       className="h-screen w-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center"
@@ -380,16 +424,21 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
               }
               color={queno === questions.length - 1 ? "success" : "primary"}
             >
-              {queno === questions.length - 1? "Submit Exam":"Next"}
+              {queno === questions.length - 1 ? "Submit Exam" : "Next"}
             </Button>
           </div>
         </div>
 
         <div className="m-4 w-[20%] h-[95%] shadow-2xl rounded-lg">
-        <div className="m-4 bg-green-100 p-4 rounded-md text-center mb-6">
+          <div className="m-4 bg-green-100 p-4 rounded-md text-center mb-6">
             <p className="text-sm text-gray-500">Timer Remaining:</p>
-            <p className={`text-2xl font-bold ${timeLeft <= 30 ? "text-red-600" : "text-green-600"}`}>
-              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
+            <p
+              className={`text-2xl font-bold ${
+                timeLeft <= 30 ? "text-red-600" : "text-green-600"
+              }`}
+            >
+              {Math.floor(timeLeft / 60)}:
+              {String(timeLeft % 60).padStart(2, "0")}
             </p>
             <CircularProgress
               variant="determinate"
@@ -445,7 +494,9 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
           agreeText={dialogMode === "warning" ? "Select Answer" : "Submit"}
           disagreeText={dialogMode === "confirmation" ? "Cancel" : ""}
           onAgree={
-            dialogMode === "confirmation" ? handleConfirmSubmit : handleDialogClose
+            dialogMode === "confirmation"
+              ? handleConfirmSubmit
+              : handleDialogClose
           }
           onClose={handleDialogClose}
         />
@@ -459,15 +510,15 @@ const [fullscreenDialogOpen, setFullscreenDialogOpen] = useState<boolean>(false)
           onDisagree={handleDialogClose}
           onClose={handleDialogClose}
         />
-         <AlertDialog
-        open={switchTabDialogOpen}
-        title="⚠️Warning: Tab Switch Detected"
-        content="You have switched tabs during the exam. If you switch tabs again, you will be disqualified from the exam!"
-        agreeText="Continue Exam"
-        disagreeText="Cancel"
-        onAgree={handleContinueExam}
-        onClose={handleTabSwitchClose}
-      />
+        <AlertDialog
+          open={switchTabDialogOpen}
+          title="⚠️Warning: Tab Switch Detected"
+          content="You have switched tabs during the exam. If you switch tabs again, you will be disqualified from the exam!"
+          agreeText="Continue Exam"
+          disagreeText="Cancel"
+          onAgree={handleContinueExam}
+          onClose={handleTabSwitchClose}
+        />
       </div>
     </div>
   );

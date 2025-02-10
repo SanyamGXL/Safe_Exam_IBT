@@ -109,27 +109,26 @@ class QUEUE:
                     db.session.add(new_exam_data)
                     db.session.commit()
 
-                    question_number , option = que_ans.split("-")
-                    if int(question_number) >= Exam_metadata.total_questions:
-                        # Get all the data of the particular student and 
-                        # Send it to be written to blockchain
-                        all_rows = Exam_Data.query.filter_by(student_id=student_id).order_by(desc(Exam_Data.EID)).all()
-                        for row in all_rows:
-                            temp_json = {
-                                "EID" : row.EID,
-                                "student_id" : row.student_id,
-                                "exam_title" : row.exam_title,
-                                "city" : row.city,
-                                "center" : row.center,
-                                "booklet" : row.booklet,
-                                "start_time" : row.start_time,
-                                "que_ans" : row.question_answer,
-                                "suspicious_activity_detected" : row.suspicious_activity,
-                                "end_time" : row.end_time,
-                            }
-                            self.Transactions_Queue.append(temp_json)
-                        print("Queue after update :-" , self.Transactions_Queue)
-                    print("Data written to database !!!")
+                    if que_ans != "-":
+                        question_number , option = que_ans.split("-")
+                        if int(question_number) >= Exam_metadata.total_questions:
+                            # Get all the data of the particular student and 
+                            # Send it to be written to blockchain
+                            all_rows = Exam_Data.query.filter_by(student_id=student_id).order_by(desc(Exam_Data.EID)).all()
+                            for row in all_rows:
+                                temp_json = {
+                                    "EID" : row.EID,
+                                    "student_id" : row.student_id,
+                                    "exam_title" : row.exam_title,
+                                    "city" : row.city,
+                                    "center" : row.center,
+                                    "booklet" : row.booklet,
+                                    "start_time" : row.start_time,
+                                    "que_ans" : row.question_answer,
+                                    "suspicious_activity_detected" : row.suspicious_activity,
+                                    "end_time" : row.end_time,
+                                }
+                                self.Transactions_Queue.append(temp_json)
 
             except Exception as e:
                 print("Error writing Exam data to database :-\n" , e)

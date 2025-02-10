@@ -100,7 +100,6 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 if bcrypt.check_password_hash(student_row.student_password, student_password):
 
                     # Write the logic that when user logs in successfully then check whether there is any previous data written in blockchain
-                    print(get_crash_exam_from_database(student_id=student_id))
                     max_question_index , question_answer_data = get_crash_exam_from_database(student_id=student_id)
                     if max_question_index == -1 and question_answer_data == -1:
                         return jsonify({"Status": "Exam Completed"}), 400
@@ -162,20 +161,26 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 for row in exam_data_all_rows:
                     try:
                         question_number , option = str(row.question_answer).split("-")
+                        if int(question_number) > max_index :
+                            max_index = int(question_number)
+                        
+                        resume_data[question_number] = option
                     except:
                         continue
-                    if int(question_number) > max_index :
-                        max_index = int(question_number)
-                    
-                    resume_data[question_number] = option
-                return (max_index , resume_data) if max_index < Exam_metadata.total_questions else (-1,-1)
+                print("Max index :-" , max_index)
+                print("Total questions :-" , Exam_metadata.total_questions)
+
+                if max_index >= Exam_metadata.total_questions:
+                    return (-1,-1)
+                else:
+                    return (max_index , resume_data)
             else:
                 # If no records are found then simply return empty resume data with index as 1
                 return (1 , {})
 
         except Exception as e:
             # If error occurs then also return resume data with index as 1
-            return jsonify(1, {})
+            return (1, {})
         
 
     

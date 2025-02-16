@@ -36,3 +36,15 @@ class Exam_Data(db.Model):
     suspicious_activity = db.Column(db.String , nullable = False)
     end_time = db.Column(db.String , nullable = False)
     transaction_id = db.Column(db.String , nullable = False)
+
+
+class Registered_device(db.Model):
+
+    __tablename__ = "registration"
+
+    RID = db.Column(db.Integer , primary_key = True , autoincrement = True)
+    student_id = db.Column(db.String, nullable=False, unique=False)
+    ip_address = db.Column(db.String , nullable = False)
+
+
+

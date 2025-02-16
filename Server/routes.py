@@ -1,7 +1,7 @@
 from flask import Flask , request , jsonify , render_template , session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from models import Student , Exam_Data
+from models import Student , Exam_Data , Registered_device
 from algosdk import account , transaction
 from algokit_utils import account as  algokit_accounts
 from algosdk.v2client.algod import AlgodClient
@@ -45,9 +45,12 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
 
         if student_id and student_password:
             # Check if student ID already exists or not
-            check_row = Student.query.filter_by(student_id=student_id).first()
+            already_login_check_row = Student.query.filter_by(student_id=student_id).first()
+
             
-            if not check_row:
+
+            
+            if not already_login_check_row:
                 student_blockchain_obj = Blockchain_Obj(
                     user_id=student_id,
                     user_already_exist=False,
@@ -97,20 +100,27 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
             student_row = Student.query.filter_by(student_id=student_id).first()
 
             if student_row:
-                if bcrypt.check_password_hash(student_row.student_password, student_password):
+                # Also check if the student ID is registered with IP address or not
+                ip_register_check_row = Registered_device.query.filter_by(student_id = student_id).first()
 
-                    # Write the logic that when user logs in successfully then check whether there is any previous data written in blockchain
-                    max_question_index , question_answer_data = get_crash_exam_from_database(student_id=student_id)
-                    if max_question_index == -1 and question_answer_data == -1:
-                        return jsonify({"Status": "Exam Completed"}), 400
+                if ip_register_check_row:
+
+                    if bcrypt.check_password_hash(student_row.student_password, student_password):
+
+                        # Write the logic that when user logs in successfully then check whether there is any previous data written in blockchain
+                        max_question_index , question_answer_data = get_crash_exam_from_database(student_id=student_id)
+                        if max_question_index == -1 and question_answer_data == -1:
+                            return jsonify({"Status": "Exam Completed"}), 400
+                        else:
+                            
+                            return jsonify({
+                                "max_question_number" : max_question_index,
+                                "question_answer_data" : question_answer_data
+                            }), 200
                     else:
-                        
-                        return jsonify({
-                            "max_question_number" : max_question_index,
-                            "question_answer_data" : question_answer_data
-                        }), 200
+                        return jsonify({"Error": "Incorrect password"}), 400
                 else:
-                    return jsonify({"Error": "Incorrect password"}), 400
+                    return jsonify({"Error": "IP not registered."}), 400
             else:
                 return jsonify({"Error": "Student does not exist"}), 400
         else:
@@ -132,11 +142,48 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
         except Exception as e:
             return jsonify({"Error" : e}) , 400
     
+    @app.route("/register_device", methods=['POST'])
+    def register_device():
+        try:
+            registration_data = request.json
+            student_id = registration_data.get('student_id')
+            ip_address = registration_data.get('device_ip')
+
+            if not student_id:
+                return jsonify({"Error": "StudentID empty"}), 400 
+
+            # Check if student ID is signed up.
+            check_student_id = Student.query.filter_by(student_id=student_id).first() 
+
+            if not check_student_id:
+                return jsonify({"Error": "User not Signed up."}), 400  
+
+            # Check if student ID exists in registration database
+            existing_row = Registered_device.query.filter_by(student_id=student_id).first() 
+
+            if existing_row:
+                existing_row.ip_address = ip_address
+                db.session.commit()
+                return jsonify({"Success": "IP updated"}), 200  # FIX: Proper return statement
+
+            # If no existing record, add new one
+            new_registration = Registered_device(
+                student_id=student_id,
+                ip_address=ip_address
+            )
+            db.session.add(new_registration)
+            db.session.commit()
+
+            return jsonify({"Success": "Device registered"}), 200
+        
+        except Exception as e:
+            return jsonify({"Error": str(e)}), 400  # FIX: Properly convert exception to string
+
+    
 
     @app.route("/generate_account", methods = ["POST"])
     def generate_account():
         try:
-
             private_key , wallet_address = generate_and_fund_account()
 
             return jsonify({
@@ -167,8 +214,6 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                         resume_data[question_number] = option
                     except:
                         continue
-                print("Max index :-" , max_index)
-                print("Total questions :-" , Exam_metadata.total_questions)
 
                 if max_index >= Exam_metadata.total_questions:
                     return (-1,-1)
@@ -198,8 +243,6 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
             if student_row:
 
                 application_id = student_row.student_deployed_app_id
-
-
                 if application_id:
                     max_question_number = 0
                     # We are picking wallet address and appid from deploy locale file which is imported in this folder

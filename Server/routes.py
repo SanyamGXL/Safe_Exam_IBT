@@ -1,4 +1,4 @@
-from flask import Flask , request , jsonify , render_template , session
+from flask import Flask , request , jsonify , render_template , session , send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from models import Student , Exam_Data , Registered_device
@@ -20,6 +20,11 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
     @app.route("/")
     def index():
         return render_template("signup.html")
+    
+
+    @app.route("/download_exe")
+    def download_exe():
+        return send_file(path_or_file="start.exe")
     
     @app.route("/signout/<student_id>", methods=["POST"])
     def signout(student_id):

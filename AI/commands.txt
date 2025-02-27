@@ -1,1 +1,6 @@
-pyinstaller --onefile --noconsole --add-data "pickle_files;pickle_files" start.py
+# --noconsole if terminal is not to be shown
+pyinstaller --onefile --noconsole --add-data "pickle_files;pickle_files" start_AI.py
+
+
+# Visible terminal
+pyinstaller --onefile --add-data "pickle_files;pickle_files" start_AI.py

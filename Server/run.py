@@ -186,8 +186,8 @@ if __name__ == "__main__":
 
     try:
         print("Server is running !!!")
-        # app.run(host="0.0.0.0" , port=3333 , debug=False ,ssl_context = "adhoc")
-        app.run(host="0.0.0.0" , port=3333 , debug=False , ssl_context=("192.168.29.126.pem", "192.168.29.126-key.pem"))
+        app.run(host="0.0.0.0" , port=3333 , debug=False)
+        # app.run(host="0.0.0.0" , port=3333 , debug=False , ssl_context=("192.168.29.126.pem", "192.168.29.126-key.pem"))
 
         
         # This will run if transactions are pending in queue and user tries to close the server using Ctrl + C

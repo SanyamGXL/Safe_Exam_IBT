@@ -11,7 +11,8 @@ from Blockchain.Create_Blockchain_object import Blockchain_Obj
 from Metadata import Exam_metadata
 import base64
 from Metadata import Blockchain_Metadata
-
+from zipfile import ZipFile
+import io
 
 
 
@@ -22,9 +23,52 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
         return render_template("signup.html")
     
 
-    @app.route("/download_exe")
-    def download_exe():
-        return send_file(path_or_file="start.exe")
+    @app.route("/send_setup_exe/<student_id>", methods=['GET'])
+    def send_setup_exe(student_id):
+
+        student_row = Student.query.filter_by(student_id=student_id).first()
+
+        if student_row:
+
+            # Ensure that the exe file exists
+            exe_file_path = "setup.exe"  # Provide the correct path if necessary
+            if not os.path.exists(exe_file_path):
+                return "EXE file not found", 404
+
+            # Return the exe file as a response
+            return send_file(exe_file_path, as_attachment=True)
+        else:
+            return jsonify({"Error" : "Student not registered."})
+
+    @app.route("/send_registration_json/<student_id>", methods=['GET'])
+    def send_registration_json(student_id):
+        # Ensure the student_id is provided
+        if not student_id:
+            return "Missing 'student_id'", 400
+        
+
+        student_row = Student.query.filter_by(student_id=student_id).first()
+
+        if student_row:
+
+
+            student_data = {
+                "student_id": student_id,
+                "backend_url": "https://93be-2409-40c0-2040-1c89-5937-ea24-98aa-fa22.ngrok-free.app",
+                "blockchain_endpoint": "/write_to_blockchain",
+                "register_endpoint": "/register_device"
+            }
+            
+            # Create a BytesIO stream to hold the JSON data
+            json_file = io.BytesIO()
+            json_file.write(json.dumps(student_data).encode('utf-8'))
+            json_file.seek(0)  # Reset the pointer to the beginning of the stream
+
+            # Return the JSON file as a response
+            return send_file(json_file, as_attachment=True, download_name=f"registration_data.json", mimetype="application/json")
+        else:
+            return jsonify({"Error" : "Student ID not registered."})
+
     
     @app.route("/signout/<student_id>", methods=["POST"])
     def signout(student_id):
@@ -152,7 +196,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
         try:
             registration_data = request.json
             student_id = registration_data.get('student_id')
-            ip_address = registration_data.get('device_ip')
+            ip_address = registration_data.get('ip_address')
 
             if not student_id:
                 return jsonify({"Error": "StudentID empty"}), 400 

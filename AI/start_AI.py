@@ -84,7 +84,9 @@ class PacketMonitor:
         self.suspicious_transaction_count = 0
         self.metadata_path = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "..")), "Metadata")
         
-        self.api_url_blockchain = "http://127.0.0.1:3333/write_to_blockchain"
+        self.IS_Device_Registered = False
+
+        
         
         self.message = "yes"
         self.student_json_data = {
@@ -102,14 +104,36 @@ class PacketMonitor:
         }
 
         try:
-            with open("registered_user.json" , "r") as f:
+            with open("registration_data.json" , "r") as f:
                 # This will contain private_key, app_id etc of user who has already deployed the application
                 self.user_json_data = json.load(fp=f)
 
                 # Update the json for studnet ID and wallet address
                 self.student_json_data['student_id'] = self.user_json_data['student_id']
-                f.close()
+
+                self.api_url_blockchain = self.user_json_data['backend_url'] # "http://127.0.0.1:3333"
+                self.write_to_blockchain_endpoint = self.user_json_data['blockchain_endpoint'] # "/write_to_blockchain"
+                self.register_endpoint = self.user_json_data['register_endpoint'] # "/register_device"
+
+                # Also modify the user json data with device IP address which will be sent to register the device Ip with student ID
+                self.user_json_data['ip_address'] = self.deviceIP
+
+                try:
+                    print("user data :-" , self.user_json_data)
+
+                    print("URL :- " , self.api_url_blockchain + self.register_endpoint)
+                    response = requests.post(self.api_url_blockchain + self.register_endpoint, json=self.user_json_data)
+                    if response.status_code == 200:
+                        self.IS_Device_Registered = True
+                        print("Device registered successfully.")
+                    else:
+                        self.IS_Device_Registered = False
+                        print("Device not resgistered !!" , response.text)
+                except Exception as e:
+                    self.IS_Device_Registered = False
+                    print("Error registering the device :-" , str(e))
                 
+                f.close()
         except Exception as e :
             print(str(e))
 
@@ -158,7 +182,7 @@ class PacketMonitor:
         if len(current_display_devices) > len(self.initial_display_devices):
             print("Malicious activity detected: Display devices changed.")
             self.suspicious_transaction_count += 1
-            requests.post(url=self.api_url_blockchain, json=self.student_json_data)
+            requests.post(url=self.api_url_blockchain + self.write_to_blockchain_endpoint, json=self.student_json_data)
             
             # If User is caught cheating more than 5 time then stop writing transactions 
             if self.suspicious_transaction_count > 3:
@@ -241,9 +265,14 @@ class PacketMonitor:
                 self.monitoring_timer.cancel()
 
 if __name__ == "__main__":
-    run_as_admin()  # Ensures script runs with admin privileges
-    register_protocol()
+    # run_as_admin()  # Ensures script runs with admin privileges
+    # register_protocol()
+
+    
     monitor = PacketMonitor()
-    monitor.start_monitoring()  # Start monitoring packets
-    monitor.main()
-    open_browser()  # Open browser after registration
+
+    if monitor.IS_Device_Registered == True:
+        monitor.start_monitoring()  # Start monitoring packets
+        monitor.main()
+    else:
+        print("Device not registered")

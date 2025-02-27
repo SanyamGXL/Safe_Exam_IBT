@@ -78,8 +78,8 @@ class PacketMonitor:
         current_time = current_time.strftime("%Y-%m-%d-%H-%M-%S")
         self.suspicious_transaction_count = 0
         self.metadata_path = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "..")), "Metadata")
+        self.IS_Device_Registered = False
         
-        self.api_url_blockchain = "http://127.0.0.1:3333/write_to_blockchain"
         
         self.message = "yes"
         self.student_json_data = {
@@ -97,16 +97,43 @@ class PacketMonitor:
         }
 
         try:
-            with open("registered_user.json" , "r") as f:
+            with open("registration_data.json" , "r") as f:
                 # This will contain private_key, app_id etc of user who has already deployed the application
                 self.user_json_data = json.load(fp=f)
 
                 # Update the json for studnet ID and wallet address
                 self.student_json_data['student_id'] = self.user_json_data['student_id']
+
+                self.api_url_blockchain = self.user_json_data['backend_url'] # "http://127.0.0.1:3333"
+                self.write_to_blockchain = self.user_json_data['blockchain_endpoint'] # "/write_to_blockchain"
+                self.register_endpoint = self.user_json_data['register_endpoint'] # "/register_device"
+
+                # Also modify the user json data with device IP address which will be sent to register the device Ip with student ID
+                self.user_json_data['ip_address'] = self.deviceIP
+
+                # Now send the user json data for registration
+                response = requests.post(url=self.api_url_blockchain)
+
+                try:
+                    response = requests.post(self.api_url_blockchain + self.register_endpoint, json=self.user_json_data, verify=False)
+                    if response.status_code == 200:
+                        self.IS_Device_Registered = True
+                        print("Device registered successfully.")
+                    else:
+                        self.IS_Device_Registered = False
+                        print("Device not resgistered !!" , response.text)
+                except Exception as e:
+                    self.IS_Device_Registered = False
+                    print("Error registering the device :-" , str(e))
+
+
+        # Now send the
                 f.close()
-                
         except Exception as e :
             print(str(e))
+
+        
+
 
         self.predictor_obj = ModelPredictor()
         self.monitoring_interval = 15

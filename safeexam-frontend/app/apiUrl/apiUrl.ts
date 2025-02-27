@@ -1,13 +1,17 @@
-const baseUrl = "https://b734-2405-201-200a-f0a7-315e-244e-b529-1ffb.ngrok-free.app/";
+const baseUrl = "https://93be-2409-40c0-2040-1c89-5937-ea24-98aa-fa22.ngrok-free.app/";
 
 interface ApiEndpoints {
   LoginUrl: string;
   ExamMetadata: string;
   WriteBlockchain: string;
+  SendRegistrationJson: string;
+  SetupEXE: string;
 }
 
 export const API_URLS: ApiEndpoints = {
   LoginUrl: `${baseUrl}login`,
   ExamMetadata: `${baseUrl}get_exam_metadata`,
   WriteBlockchain: `${baseUrl}write_to_blockchain`,
+  SendRegistrationJson:`${baseUrl}send_registration_json`,
+  SetupEXE:`${baseUrl}send_setup_exe`
 };

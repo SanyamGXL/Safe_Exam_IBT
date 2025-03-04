@@ -128,7 +128,7 @@ class PacketMonitor:
                         print("Device registered successfully.")
                     else:
                         self.IS_Device_Registered = False
-                        print("Device not resgistered !!" , response.text)
+                        print("Device not resgistered !!")
                 except Exception as e:
                     self.IS_Device_Registered = False
                     print("Error registering the device :-" , str(e))
@@ -220,7 +220,7 @@ class PacketMonitor:
         print("Traffic dictionary: ", self.traffic_dict)
         for key, value in self.traffic_dict.items():
             packet_rate = value['packet_rate']
-            if packet_rate > 245368:
+            if packet_rate > 264536:
                 print("High packet rate detected, sending data for AI prediction.")
                 data_for_prediction = {
                     'protocol': 'UDP',
@@ -233,7 +233,7 @@ class PacketMonitor:
                 if self.predictor_obj.predict(data_for_prediction) != 1:
                     print("Malicious activity detected!")
                     self.suspicious_transaction_count+=1
-                    requests.post(url=self.api_url_blockchain, json=self.student_json_data)
+                    requests.post(url=self.api_url_blockchain + self.write_to_blockchain_endpoint, json=self.student_json_data)
                     
                     # If User is caught cheating more than 5 time then stop writing transactions 
                     if self.suspicious_transaction_count > 3:
@@ -276,3 +276,4 @@ if __name__ == "__main__":
         monitor.main()
     else:
         print("Device not registered")
+        sys.exit(0)

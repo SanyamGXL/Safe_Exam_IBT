@@ -101,9 +101,8 @@ export default function LoginPage() {
         console.log(loginData.Error);
         if (loginData.Error == "IP not registered."){
           console.log("Hello inside if!");
-
-          window.open(`${API_URLS.SetupEXE}/${student_id}`, "_blank");
           window.open(`${API_URLS.SendRegistrationJson}/${student_id}`, "_blank");
+          window.open(`${API_URLS.SetupEXE}/${student_id}`, "_blank");
           console.log(`Download triggered: ${API_URLS.SendRegistrationJson}/${student_id}`);
           console.log(`Download triggered: ${API_URLS.SetupEXE}/${student_id}`);
         }

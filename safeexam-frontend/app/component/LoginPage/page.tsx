@@ -29,16 +29,19 @@ export default function LoginPage() {
     "success" | "error" | "warning"
   >("success");
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [warningDialogOpen, setWarningDialogOpen] = useState<boolean>(false);
   const [maxQuestionNumber, setMaxQuestionNumber] = useState<number>(0);
 
   const handleCloseSnackbar = () => setSnackbarOpen(false);
 
   const handleDialogClose = () => {
     setDialogOpen(false);
+    setWarningDialogOpen(false);
   };
 
   const handleDialogConfirm = () => {
     setDialogOpen(false);
+    setWarningDialogOpen(false);
     try {
       router.push("/QuizPage");
     } catch (error) {
@@ -103,6 +106,7 @@ export default function LoginPage() {
           console.log("Hello inside if!");
           window.open(`${API_URLS.SendRegistrationJson}/${student_id}`, "_blank");
           window.open(`${API_URLS.SetupEXE}/${student_id}`, "_blank");
+          setWarningDialogOpen(true)
           console.log(`Download triggered: ${API_URLS.SendRegistrationJson}/${student_id}`);
           console.log(`Download triggered: ${API_URLS.SetupEXE}/${student_id}`);
         }
@@ -218,6 +222,16 @@ export default function LoginPage() {
           agreeText="Yes, Start"
           disagreeText="Cancel"
           onAgree={handleDialogConfirm}
+          onDisagree={handleDialogClose}
+          onClose={handleDialogClose}
+        />
+        <AlertDialog 
+          open={warningDialogOpen}
+          title="⚠ Warning: Unregistered IP Address"
+          content="Your IP address is not registered in our system. Please enable pop-ups to allow the automatic download of the required JSON and EXE files. Once the EXE file is downloaded, run it to complete the device registration process. Thank you."
+          agreeText="Understood"
+          disagreeText=""
+          onAgree={handleDialogClose}
           onDisagree={handleDialogClose}
           onClose={handleDialogClose}
         />

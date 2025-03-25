@@ -1,5 +1,5 @@
 from flask import Flask , request , jsonify , render_template , session , send_file
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy , session
 from flask_bcrypt import Bcrypt
 from models import Student , Exam_Data , Registered_device
 from algosdk import account , transaction
@@ -11,9 +11,9 @@ from Blockchain.Create_Blockchain_object import Blockchain_Obj
 from Metadata import Exam_metadata
 import base64
 from Metadata import Blockchain_Metadata
-from zipfile import ZipFile
 import io
-
+from sqlalchemy import func
+from sqlalchemy.orm import aliased
 
 
 def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
@@ -174,8 +174,100 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 return jsonify({"Error": "Student does not exist"}), 400
         else:
             return jsonify({"Error": "Student ID or password is null"}), 400
-    
+        
 
+
+    @app.route("/get_all_quiz_data" , methods=['GET' , 'POST'])
+    def get_all_quiz_data():
+        try:
+
+            exam_data_all_rows = Exam_Data.query.all()
+            exam_data = [{
+                "student_id" : row.student_id,
+                "exam_title" : row.exam_title,
+                "city" : row.city,
+                "center" : row.center,
+                "booklet" : row.booklet,
+                "start_time" : row.start_time,
+                "question_answer" : row.question_answer,
+                "supicious_activity" : row.suspicious_activity,
+                "end_time" : row.end_time,
+                "transation_id" : row.transaction_id
+            } for row in exam_data_all_rows]
+
+            return exam_data , 200
+        except Exception as e:
+            return jsonify({"error" : str(e)}) , 400
+        
+
+    @app.route("/get_suspicious_user_count" , methods = ['GET'])
+    def get_suspicious_user_count():
+
+        try:
+            suspicious_count = db.session.query(Exam_Data.student_id).filter(Exam_Data.suspicious_activity.like("yes%")).distinct().count()
+            return jsonify({"suspicious_count" :suspicious_count}) , 200
+        except Exception as e :
+            return jsonify({"Error" : str(e)})
+
+    @app.route("/get_citywise_count" , methods = ['GET'])
+    def get_citywise_count():
+
+        try:
+            distinct_count_query = (
+                db.session.query(Exam_Data.city, func.count(func.distinct(Exam_Data.student_id)).label("student_count"))
+                .group_by(Exam_Data.city)
+                .all()
+            )
+            citywise_count = [{"city" : data[0] , "count":data[1]} for data in distinct_count_query]
+            return jsonify(citywise_count) , 200
+        except Exception as e :
+            return jsonify({"Error" : str(e)})
+
+
+    @app.route("/get_centerwise_count" , methods = ['GET'])
+    def get_centerwise_count():
+
+        try:
+            distinct_count_query = (
+                db.session.query(Exam_Data.center, func.count(func.distinct(Exam_Data.student_id)).label("student_count"))
+                .group_by(Exam_Data.city)
+                .all()
+            )
+            center_count = [{"city" : data[0] , "count":data[1]} for data in distinct_count_query]
+            return jsonify(center_count) , 200
+        except Exception as e :
+            return jsonify({"Error" : str(e)})
+
+    @app.route("/get_wallet_data/<wallet_address>" , methods = ["GET"])
+    def get_wallet_data(wallet_address):
+        try:
+            wallet_data = (
+                db.session.query(Exam_Data)
+                .join(Student, Student.student_id == Exam_Data.student_id)  # Join with Student table
+                .filter(Student.student_wallet_address == wallet_address)  # Filter by wallet address
+                .all()
+            )
+            
+            wallet_data = [
+                {
+                "student_id" : row.student_id,
+                "exam_title" : row.exam_title,
+                "city" : row.city,
+                "center" : row.center,
+                "booklet" : row.booklet,
+                "start_time" : row.start_time,
+                "question_answer" : row.question_answer,
+                "supicious_activity" : row.suspicious_activity,
+                "end_time" : row.end_time,
+                "transation_id" : row.transaction_id
+            }
+                for row in wallet_data
+            ]
+            return jsonify(wallet_data) , 200
+        except Exception as e :
+            return jsonify({"Error" : str(e)}) , 400
+    
+    
     @app.route("/get_exam_metadata" , methods = ["GET"])
     def get_question_paper():
         try:

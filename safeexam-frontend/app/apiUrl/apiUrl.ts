@@ -1,4 +1,4 @@
-const baseUrl = "https://f113-2405-201-200a-f0a7-2541-7fbf-5717-1bd3.ngrok-free.app/";
+const baseUrl = "http://127.0.0.1:3333/";
 
 interface ApiEndpoints {
   LoginUrl: string;

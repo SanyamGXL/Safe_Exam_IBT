@@ -1,8 +1,12 @@
-const dataUrl = "http://127.0.0.1:2222/get_all_quiz_data";
-const dummyUrl = "http://127.0.0.1:2222/get_all_quiz_dummy_data";
-export const anomalyUrl = "http://127.0.0.1:2222/get_suspicious_user_count"
-export const citywiseUrl = "http://127.0.0.1:2222/get_citywise_count"
-export const centerwiseUrl = "http://127.0.0.1:2222/get_centerwise_count"
+const baseUrl = "https://f04b-2405-201-200a-f0a7-c98c-c0bb-dc17-e34b.ngrok-free.app/"
+const dataUrl = `${baseUrl}get_all_quiz_data`
+const dummyUrl = `${baseUrl}get_all_quiz_dummy_data`
+export const anomalyUrl = `${baseUrl}get_suspicious_user_count`
+export const citywiseUrl = `${baseUrl}get_citywise_count`
+export const centerwiseUrl = `${baseUrl}get_centerwise_count`
+export const examMetadataUrl = `${baseUrl}get_exam_metadata`
+export const getWalletDataUrl = `${baseUrl}get_wallet_data`
+export const getWalletDataDummyUrl = `${baseUrl}get_dummy_wallet_data`
 
 export const fetchData = async (dataType: string) => {
   try {

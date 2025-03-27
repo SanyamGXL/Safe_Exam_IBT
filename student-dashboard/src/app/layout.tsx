@@ -15,7 +15,7 @@ import {
 } from "react-icons/fa";
 import Link from "next/link";
 import * as XLSX from "xlsx";
-import {fetchData} from "./FetchUrl/page"
+import {fetchData,examMetadataUrl} from "./FetchUrl/page"
 import Dashboard from "./Dashboard/page";
 import { usePathname } from "next/navigation";
 import StudentTable from "./Student/page";
@@ -29,19 +29,19 @@ interface StudentData {
   wallet_address: string;
   exam_title: string;
   city: string;
-  center_name: string;
+  center: string;
   start_time: string;
   booklet: string;
-  que_ans: string;
-  suspicious_activity_detected: string;
+  question_answer: string;
+  supicious_activity: string;
   end_time: string;
-  transaction_id: string;
+  transation_id: string;
 }
 
 interface ExamData {
-  exam_start_time: string;
-  exam_name: string;
-  exam_end_time: string;
+  Exam_start_time: string;
+  Exam_Title: string;
+  Exam_end_time: string;
 }
 
 export default function RootLayout({
@@ -59,7 +59,7 @@ export default function RootLayout({
   const [dataType, setDataType] = useState("default");
 
   useEffect(() => {
-    fetch("http://127.0.0.1:2222/exam_data", {
+    fetch(examMetadataUrl, {
       method: "GET",
       headers: {
         "ngrok-skip-browser-warning": "true",
@@ -99,9 +99,9 @@ export default function RootLayout({
     // Define column 
     const examDetails = [
       [],
-      ["Exam Name",`${examData.exam_name}`],
-      ["Start Time",`${examData.exam_start_time}`],
-      ["End Time",`${examData.exam_end_time}`],
+      ["Exam Name",`${examData.Exam_Title}`],
+      ["Start Time",`${examData.Exam_start_time}`],
+      ["End Time",`${examData.Exam_end_time}`],
       [], // Blank row for separation
     ];
     const headers = [
@@ -123,7 +123,7 @@ export default function RootLayout({
 
     // Map student data to rows
     const data = filteredData
-      .filter((student) => student.exam_title === examData.exam_name)
+      .filter((student) => student.exam_title === examData.Exam_Title)
       .map((student, index) =>
         [
           (index + 1).toString(), // Convert number to string
@@ -131,13 +131,13 @@ export default function RootLayout({
           student.wallet_address,
           student.exam_title,
           student.city,
-          student.center_name,
+          student.center,
           student.booklet,
           student.start_time,
-          student.que_ans,
-          student.suspicious_activity_detected,
+          student.question_answer,
+          student.supicious_activity,
           student.end_time,
-          student.transaction_id,
+          student.transation_id,
         ].map((item) => item.toString())
       );
 
@@ -150,7 +150,7 @@ export default function RootLayout({
     XLSX.utils.book_append_sheet(workbook, worksheet, "Exam Report");
 
     // Generate and download the Excel file
-    XLSX.writeFile(workbook, `Exam_Report_${examData.exam_name}.xlsx`);
+    XLSX.writeFile(workbook, `Exam_Report_${examData.Exam_Title}.xlsx`);
   }
 
   const now = new Date();
@@ -167,8 +167,8 @@ export default function RootLayout({
     const updateExamStatus = () => {
       if (examData) {
         const now = new Date();
-        const examStartTime = parseTime(examData.exam_start_time);
-        const examEndTime = parseTime(examData.exam_end_time);
+        const examStartTime = parseTime(examData.Exam_start_time);
+        const examEndTime = parseTime(examData.Exam_end_time);
   
         setIsExamOngoing(examStartTime <= now && now <= examEndTime);
         setIsExportable(now > examEndTime && now <= new Date(examEndTime.getTime() + 30 * 60000));
@@ -249,9 +249,9 @@ export default function RootLayout({
               )}
               <span className="font-semibold text-slate-50">
                 {isExamOngoing
-                  ? `${examData?.exam_name}`
+                  ? `${examData?.Exam_Title}`
                   : isExportable
-                  ? `${examData?.exam_name} - Ended at ${examData?.exam_end_time}`
+                  ? `${examData?.Exam_Title} - Ended at ${examData?.Exam_end_time}`
                   : "No ongoing or finished exams"}
               </span>
             </button>

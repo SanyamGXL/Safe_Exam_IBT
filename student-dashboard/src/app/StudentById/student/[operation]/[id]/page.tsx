@@ -18,20 +18,22 @@ import * as XLSX from "xlsx";
 import { Card } from "@/components/ui/card";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import {getWalletDataUrl,getWalletDataDummyUrl} from "../../../../FetchUrl/page"
 
 interface StudentData {
   student_id: string;
   wallet_address: string;
   exam_title: string;
   city: string;
-  center_name: string;
+  center: string;
   start_time: string;
   booklet: string;
-  que_ans: string;
-  suspicious_activity_detected: string;
+  question_answer: string;
+  supicious_activity: string;
   end_time: string;
-  transaction_id: string;
+  transation_id: string;
 }
+
 
 interface Props {
     dataType: string; 
@@ -75,7 +77,7 @@ export function StudentDataByID({ dataType }: Props) {
 
   // Fetching the data and setting both studentData and filteredData
   useEffect(() => {
-    let url = dataType === "dummy" ? `http://127.0.0.1:2222/get_dummy_wallet_data/${wallet_address}` : `http://127.0.0.1:2222/get_wallet_data/${wallet_address}`
+    let url = dataType === "dummy" ? `${getWalletDataDummyUrl}/${wallet_address}` : `${getWalletDataUrl}/${wallet_address}`
     fetch(url, {
       method: "GET",
       headers: {
@@ -96,7 +98,7 @@ export function StudentDataByID({ dataType }: Props) {
           new Set(data.map((student) => student.city).filter(Boolean))
         );
         const centers = Array.from(
-          new Set(data.map((student) => student.center_name).filter(Boolean))
+          new Set(data.map((student) => student.center).filter(Boolean))
         );
         const titles = Array.from(
           new Set(data.map((student) => student.exam_title).filter(Boolean))
@@ -117,7 +119,7 @@ export function StudentDataByID({ dataType }: Props) {
       const centersForCity = uniqueCenters.filter((center) =>
         studentData.some(
           (student) =>
-            student.city === cityFilter && student.center_name === center
+            student.city === cityFilter && student.center === center
         )
       );
       setFilteredCenters(centersForCity);
@@ -140,39 +142,39 @@ export function StudentDataByID({ dataType }: Props) {
   }
 
   useEffect(() => {
-    const filtered = studentData.filter((student) => {
-
-      const studentDate = parseCustomDate(student.start_time);
-      if (!studentDate) return false; 
-
-      const formattedStudentDate = `${String(studentDate.getDate()).padStart(2, "0")}-${String(
-        studentDate.getMonth() + 1
-      ).padStart(2, "0")}-${studentDate.getFullYear()}`;
-  
-      const formattedDate = dateFilter
-      ? `${String(dateFilter.getDate()).padStart(2, "0")}-${String(
-          dateFilter.getMonth() + 1
-        ).padStart(2, "0")}-${dateFilter.getFullYear()}`
-      : "";
-
-      return (
-        (cityFilter
-          ? student.city.toLowerCase().includes(cityFilter.toLowerCase())
-          : true) &&
-        (centerFilter
-          ? student.center_name
-              .toLowerCase()
-              .includes(centerFilter.toLowerCase())
-          : true) &&
-        (titleFilter
-          ? student.exam_title.toLowerCase().includes(titleFilter.toLowerCase())
-          : true) &&
-        (dateFilter ? formattedStudentDate === formattedDate : true)
-      );
-    });
-    console.log("Filtered Data:", filtered);
-    setFilteredData(filtered);
-  }, [cityFilter, centerFilter, titleFilter, dateFilter, studentData]);
+       const filtered = studentData.filter((student) => {
+         
+         if (dateFilter) {
+           const studentDate = parseCustomDate(student.start_time);
+           if (!studentDate) return false; 
+     
+           const formattedStudentDate = `${String(studentDate.getDate()).padStart(2, "0")}-${String(
+             studentDate.getMonth() + 1
+           ).padStart(2, "0")}-${studentDate.getFullYear()}`;
+           
+           const formattedDate = `${String(dateFilter.getDate()).padStart(2, "0")}-${String(
+             dateFilter.getMonth() + 1
+           ).padStart(2, "0")}-${dateFilter.getFullYear()}`;
+     
+           if (formattedStudentDate !== formattedDate) return false;
+         }
+     
+         // Other filters
+         return (
+           (cityFilter
+             ? student.city.toLowerCase().includes(cityFilter.toLowerCase())
+             : true) &&
+           (centerFilter
+             ? student.center.toLowerCase().includes(centerFilter.toLowerCase())
+             : true) &&
+           (titleFilter
+             ? student.exam_title.toLowerCase().includes(titleFilter.toLowerCase())
+             : true)
+         );
+       });
+     
+       setFilteredData(filtered);
+     }, [cityFilter, centerFilter, titleFilter, dateFilter, studentData]);
 
 
   const handleStringFilterChange =
@@ -273,13 +275,13 @@ export function StudentDataByID({ dataType }: Props) {
         student.wallet_address,
         student.exam_title,
         student.city,
-        student.center_name,
+        student.center,
         student.booklet,
         student.start_time,
-        student.que_ans,
-        student.suspicious_activity_detected,
+        student.question_answer,
+        student.supicious_activity,
         student.end_time,
-        student.transaction_id,
+        student.transation_id,
       ].map((item) => item.toString())
     );
 
@@ -329,13 +331,13 @@ export function StudentDataByID({ dataType }: Props) {
       student.wallet_address,
       student.exam_title,
       student.city,
-      student.center_name,
+      student.center,
       student.booklet,
       student.start_time,
-      student.que_ans,
-      student.suspicious_activity_detected,
+      student.question_answer,
+      student.supicious_activity,
       student.end_time,
-      student.transaction_id,
+      student.transation_id,
     ]);
 
     doc.text(title, marginLeft, 40);
@@ -448,13 +450,13 @@ export function StudentDataByID({ dataType }: Props) {
                         <TableCell>{student.wallet_address}</TableCell>
                         <TableCell>{student.exam_title}</TableCell>
                         <TableCell>{student.city}</TableCell>
-                        <TableCell>{student.center_name}</TableCell>
+                        <TableCell>{student.center}</TableCell>
                         <TableCell>{student.start_time}</TableCell>
                         <TableCell>{student.booklet}</TableCell>
-                        <TableCell>{student.que_ans}</TableCell>
-                        <TableCell>{student.suspicious_activity_detected}</TableCell>
+                        <TableCell>{student.question_answer}</TableCell>
+                        <TableCell>{student.supicious_activity}</TableCell>
                         <TableCell>{student.end_time}</TableCell>
-                        <TableCell>{student.transaction_id}</TableCell>
+                        <TableCell>{student.transation_id}</TableCell>
                       </TableRow>
                     ))
                   ) : (

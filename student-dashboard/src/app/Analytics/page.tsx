@@ -38,13 +38,13 @@ interface StudentData {
   wallet_address: string;
   exam_title: string;
   city: string;
-  center_name: string;
+  center: string;
   start_time: string;
   booklet: string;
-  que_ans: string;
-  suspicious_activity_detected: string;
+  question_answer: string;
+  supicious_activity: string;
   end_time: string;
-  transaction_id: string;
+  transation_id: string;
 }
 
 interface Filter {
@@ -56,7 +56,7 @@ interface Filter {
 
 interface AnomalyData {
   total_student_count: number;
-  total_suspicious_count: number;
+  suspicious_count: number;
 }
 
 interface CityAnomalyData {
@@ -116,7 +116,11 @@ export function Analytics({ dataType }: Props) {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    fetch(anomalyUrl)
+    fetch(anomalyUrl,{
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+      },
+    })
       .then((response) => response.json())
       .then((data: AnomalyData) => {
         setAnomalyData(data);
@@ -124,9 +128,9 @@ export function Analytics({ dataType }: Props) {
           "total_student_count:",
           data.total_student_count,
           "total_suspicious_count:",
-          data.total_suspicious_count
+          data.suspicious_count
         );
-        const anomalyCount = data.total_suspicious_count;
+        const anomalyCount = data.suspicious_count;
         const uniqueStudent = data.total_student_count;
         setAnomalyDetectedCount(anomalyCount);
         setPieChartData({
@@ -163,7 +167,7 @@ export function Analytics({ dataType }: Props) {
           const centers = Array.from(
             new Set(
               uniqueStudents
-                .map((student) => student.center_name)
+                .map((student) => student.center)
                 .filter(Boolean)
             )
           );
@@ -182,7 +186,7 @@ export function Analytics({ dataType }: Props) {
 
           const examsPerCenter = centers.map(
             (center) =>
-              uniqueStudents.filter((student) => student.center_name === center)
+              uniqueStudents.filter((student) => student.center === center)
                 .length
           );
           const examsPerCity = cities.map(
@@ -191,7 +195,7 @@ export function Analytics({ dataType }: Props) {
           );
           const anomalyCount = uniqueStudents.filter(
             (student) =>
-              student.suspicious_activity_detected.toLowerCase() !== "no"
+              student.supicious_activity.toLowerCase() !== "no"
           ).length;
           const completedExams = uniqueStudents.filter(
             (student) => student.end_time
@@ -259,7 +263,11 @@ export function Analytics({ dataType }: Props) {
   }, [dataType]);
 
   useEffect(() => {
-    fetch(anomalyUrl)
+    fetch(anomalyUrl,{
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+      },
+    })
     .then((response) => response.json())
     .then((data: AnomalyData) => {
       setAnomalyData(data);
@@ -267,9 +275,9 @@ export function Analytics({ dataType }: Props) {
         "total_student_count:",
         data.total_student_count,
         "total_suspicious_count:",
-        data.total_suspicious_count
+        data.suspicious_count
       );
-      const anomalyCount = data.total_suspicious_count;
+      const anomalyCount = data.suspicious_count;
       const uniqueStudent = data.total_student_count;
       setAnomalyDetectedCount(anomalyCount);
       setPieChartData({
@@ -289,7 +297,11 @@ export function Analytics({ dataType }: Props) {
     if (filter.city || filter.center) {
       if (filter.city) {
         console.log("Selected City:",filter.city);
-        fetch(`${citywiseUrl}/${filter.city}`)
+        fetch(`${citywiseUrl}/${filter.city}`,{
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+          },
+        })
           .then((response) => response.json())
           .then((data: CityAnomalyData) => {
             setCityAnomalyData(data);
@@ -328,7 +340,11 @@ export function Analytics({ dataType }: Props) {
   
       if (filter.center) {
         console.log("Selected center:",filter.center);
-        fetch(`${centerwiseUrl}/${filter.center}`)
+        fetch(`${centerwiseUrl}/${filter.center}`,{
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+          },
+        })
           .then((response) => response.json())
           .then((data: CenterAnomalyData) => {
             setCenterAnomalyData(data);
@@ -372,7 +388,7 @@ export function Analytics({ dataType }: Props) {
           filter.city ? student.city === filter.city : true
         )
         .filter((student) =>
-          filter.center ? student.center_name === filter.center : true
+          filter.center ? student.center === filter.center : true
         )
         .filter((student) =>
           filter.title ? student.exam_title === filter.title : true
@@ -383,7 +399,7 @@ export function Analytics({ dataType }: Props) {
       );
       const centers = Array.from(
         new Set(
-          filteredStudents.map((student) => student.center_name).filter(Boolean)
+          filteredStudents.map((student) => student.center).filter(Boolean)
         )
       );
       const titles = Array.from(
@@ -394,7 +410,7 @@ export function Analytics({ dataType }: Props) {
 
       const examsPerCenter = centers.map(
         (center) =>
-          filteredStudents.filter((student) => student.center_name === center)
+          filteredStudents.filter((student) => student.center === center)
             .length
       );
       const examsPerCity = cities.map(
@@ -409,7 +425,7 @@ export function Analytics({ dataType }: Props) {
       const relatedCenters = uniqueCenters.filter((center) =>
         studentData.some(
           (student) =>
-            student.city === filter.city && student.center_name === center
+            student.city === filter.city && student.center === center
         )
       );
       setFilteredCenters(relatedCenters);

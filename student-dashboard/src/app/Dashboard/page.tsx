@@ -31,18 +31,19 @@ interface StudentData {
   wallet_address: string;
   exam_title: string;
   city: string;
-  center_name: string;
+  center: string;
   start_time: string;
   booklet: string;
-  que_ans: string;
-  suspicious_activity_detected: string;
+  question_answer: string;
+  supicious_activity: string;
   end_time: string;
-  transaction_id: string;
+  transation_id: string;
 }
+
 
 interface AnomalyData {
   total_student_count: number;
-  total_suspicious_count: number;
+  suspicious_count: number;
 }
 
 interface Props {
@@ -80,13 +81,16 @@ export function Dashboard({ dataType }: Props) {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-
-    fetch(anomalyUrl)
+    fetch(anomalyUrl,{
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+      },
+    })
       .then((response) => response.json())
       .then((data: AnomalyData) => {
         setAnomalyData(data);
-        console.log("total_student_count:",data.total_student_count,"total_suspicious_count:",data.total_suspicious_count);
-        const anomalyCount = data.total_suspicious_count;
+        console.log("total_student_count:",data.total_student_count,"total_suspicious_count:",data.suspicious_count);
+        const anomalyCount = data.suspicious_count;
         const uniqueStudent = data.total_student_count;
         setAnomalyDetectedCount(anomalyCount);
         setPieChartData({
@@ -117,7 +121,7 @@ export function Dashboard({ dataType }: Props) {
         );
         const centers = Array.from(
           new Set(
-            uniqueStudents.map((student) => student.center_name).filter(Boolean)
+            uniqueStudents.map((student) => student.center).filter(Boolean)
           )
         );
         const titles = Array.from(
@@ -216,7 +220,7 @@ export function Dashboard({ dataType }: Props) {
                     </div>
                     <Progress
                       value={
-                        (anomalyDetectedCount / (studentData.length || 1)) * 100
+                        (anomalyDetectedCount /100) * 100
                       }
                       className="w-full mt-2"
                     />

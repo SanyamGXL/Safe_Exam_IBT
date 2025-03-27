@@ -26,13 +26,13 @@ interface StudentData {
   wallet_address: string;
   exam_title: string;
   city: string;
-  center_name: string;
+  center: string;
   start_time: string;
   booklet: string;
-  que_ans: string;
-  suspicious_activity_detected: string;
+  question_answer: string;
+  supicious_activity: string;
   end_time: string;
-  transaction_id: string;
+  transation_id: string;
 }
 
 interface Filter {
@@ -88,7 +88,7 @@ export function StudentTable({ dataType }: Props) {
           new Set(data.map((student) => student.city).filter(Boolean))
         );
         const centers = Array.from(
-          new Set(data.map((student) => student.center_name).filter(Boolean))
+          new Set(data.map((student) => student.center).filter(Boolean))
         );
         const titles = Array.from(
           new Set(data.map((student) => student.exam_title).filter(Boolean))
@@ -109,7 +109,7 @@ export function StudentTable({ dataType }: Props) {
       const centersForCity = uniqueCenters.filter((center) =>
         studentData.some(
           (student) =>
-            student.city === cityFilter && student.center_name === center
+            student.city === cityFilter && student.center === center
         )
       );
       setFilteredCenters(centersForCity);
@@ -133,39 +133,38 @@ export function StudentTable({ dataType }: Props) {
 
   useEffect(() => {
     const filtered = studentData.filter((student) => {
-
-      const studentDate = parseCustomDate(student.start_time);
-      if (!studentDate) return false; 
-
-      const formattedStudentDate = `${String(studentDate.getDate()).padStart(2, "0")}-${String(
-        studentDate.getMonth() + 1
-      ).padStart(2, "0")}-${studentDate.getFullYear()}`;
+      
+      if (dateFilter) {
+        const studentDate = parseCustomDate(student.start_time);
+        if (!studentDate) return false; 
   
-      const formattedDate = dateFilter
-      ? `${String(dateFilter.getDate()).padStart(2, "0")}-${String(
+        const formattedStudentDate = `${String(studentDate.getDate()).padStart(2, "0")}-${String(
+          studentDate.getMonth() + 1
+        ).padStart(2, "0")}-${studentDate.getFullYear()}`;
+        
+        const formattedDate = `${String(dateFilter.getDate()).padStart(2, "0")}-${String(
           dateFilter.getMonth() + 1
-        ).padStart(2, "0")}-${dateFilter.getFullYear()}`
-      : "";
-
+        ).padStart(2, "0")}-${dateFilter.getFullYear()}`;
+  
+        if (formattedStudentDate !== formattedDate) return false;
+      }
+  
+      // Other filters
       return (
         (cityFilter
           ? student.city.toLowerCase().includes(cityFilter.toLowerCase())
           : true) &&
         (centerFilter
-          ? student.center_name
-              .toLowerCase()
-              .includes(centerFilter.toLowerCase())
+          ? student.center.toLowerCase().includes(centerFilter.toLowerCase())
           : true) &&
         (titleFilter
           ? student.exam_title.toLowerCase().includes(titleFilter.toLowerCase())
-          : true) &&
-        (dateFilter ? formattedStudentDate === formattedDate : true)
+          : true)
       );
     });
-    console.log("Filtered Data:", filtered);
+  
     setFilteredData(filtered);
   }, [cityFilter, centerFilter, titleFilter, dateFilter, studentData]);
-
 
   const handleStringFilterChange =
     (setter: React.Dispatch<React.SetStateAction<string>>) =>
@@ -196,7 +195,7 @@ export function StudentTable({ dataType }: Props) {
   useEffect(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filteredArray = studentData.filter((student) =>
-      student.wallet_address.toLowerCase().includes(lowercasedFilter)
+      student.wallet_address?.toLowerCase().includes(lowercasedFilter)
     );
     setFilteredData(filteredArray.reverse());
     setCurrentPage(1); // Reset to the first page whenever filtering occurs
@@ -265,13 +264,13 @@ export function StudentTable({ dataType }: Props) {
         student.wallet_address,
         student.exam_title,
         student.city,
-        student.center_name,
+        student.center,
         student.booklet,
         student.start_time,
-        student.que_ans,
-        student.suspicious_activity_detected,
+        student.question_answer,
+        student.supicious_activity,
         student.end_time,
-        student.transaction_id,
+        student.transation_id,
       ].map((item) => item.toString())
     );
 
@@ -321,13 +320,13 @@ export function StudentTable({ dataType }: Props) {
       student.wallet_address,
       student.exam_title,
       student.city,
-      student.center_name,
+      student.center,
       student.booklet,
       student.start_time,
-      student.que_ans,
-      student.suspicious_activity_detected,
+      student.question_answer,
+      student.supicious_activity,
       student.end_time,
-      student.transaction_id,
+      student.transation_id,
     ]);
 
     doc.text(title, marginLeft, 40);
@@ -440,13 +439,13 @@ export function StudentTable({ dataType }: Props) {
                         <TableCell>{student.wallet_address}</TableCell>
                         <TableCell>{student.exam_title}</TableCell>
                         <TableCell>{student.city}</TableCell>
-                        <TableCell>{student.center_name}</TableCell>
+                        <TableCell>{student.center}</TableCell>
                         <TableCell>{student.start_time}</TableCell>
                         <TableCell>{student.booklet}</TableCell>
-                        <TableCell>{student.que_ans}</TableCell>
-                        <TableCell>{student.suspicious_activity_detected}</TableCell>
+                        <TableCell>{student.question_answer}</TableCell>
+                        <TableCell>{student.supicious_activity}</TableCell>
                         <TableCell>{student.end_time}</TableCell>
-                        <TableCell>{student.transaction_id}</TableCell>
+                        <TableCell>{student.transation_id}</TableCell>
                       </TableRow>
                     ))
                   ) : (

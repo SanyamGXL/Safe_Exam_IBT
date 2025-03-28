@@ -12,8 +12,7 @@ from Metadata import Exam_metadata
 import base64
 from Metadata import Blockchain_Metadata
 import io
-from sqlalchemy import func
-from sqlalchemy.orm import aliased
+from sqlalchemy import func ,distinct
 
 
 def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
@@ -54,7 +53,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
 
             student_data = {
                 "student_id": student_id,
-                "backend_url": "http://127.0.0.1:3333",
+                "backend_url": "https://f04b-2405-201-200a-f0a7-c98c-c0bb-dc17-e34b.ngrok-free.app",
                 "blockchain_endpoint": "/write_to_blockchain",
                 "register_endpoint": "/register_device"
             }
@@ -181,7 +180,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
     def get_all_quiz_data():
         try:
 
-            exam_data_all_rows = Exam_Data.query.all()
+            exam_data_all_rows_with_wallet = db.session.query(Exam_Data , Student.student_wallet_address).join(Student , Student.student_id == Exam_Data.student_id).all()
             exam_data = [{
                 "student_id" : row.student_id,
                 "exam_title" : row.exam_title,
@@ -192,8 +191,9 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 "question_answer" : row.question_answer,
                 "supicious_activity" : row.suspicious_activity,
                 "end_time" : row.end_time,
-                "transation_id" : row.transaction_id
-            } for row in exam_data_all_rows]
+                "transation_id" : row.transaction_id,
+                "wallet_address" : wallet_address
+            } for row , wallet_address in exam_data_all_rows_with_wallet]
 
             return exam_data , 200
         except Exception as e:
@@ -205,7 +205,12 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
 
         try:
             suspicious_count = db.session.query(Exam_Data.student_id).filter(Exam_Data.suspicious_activity.like("yes%")).distinct().count()
-            return jsonify({"suspicious_count" :suspicious_count}) , 200
+            total_student_count = db.session.query(Exam_Data.student_id).distinct().count()
+
+            return jsonify({
+                "suspicious_count" :suspicious_count,
+                "total_student_count" : total_student_count
+            }) , 200
         except Exception as e :
             return jsonify({"Error" : str(e)})
 
@@ -218,8 +223,22 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 .group_by(Exam_Data.city)
                 .all()
             )
+            city_wise_suspicious_count = (
+                db.session.query(
+                    Exam_Data.city,  
+                    func.count(distinct(Exam_Data.student_id))  
+                )
+                .filter(Exam_Data.suspicious_activity.like("yes%"))  
+                .group_by(Exam_Data.city)  
+                .all()
+            )
+            
             citywise_count = [{"city" : data[0] , "count":data[1]} for data in distinct_count_query]
-            return jsonify(citywise_count) , 200
+            city_wise_suspicious_count = [{"city" : city , "count" : count} for city , count in city_wise_suspicious_count]
+            return jsonify({
+                "citywise_count" : citywise_count,
+                "citywise_suspicious_count" : city_wise_suspicious_count
+            }) , 200
         except Exception as e :
             return jsonify({"Error" : str(e)})
 
@@ -233,8 +252,23 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 .group_by(Exam_Data.city)
                 .all()
             )
-            center_count = [{"city" : data[0] , "count":data[1]} for data in distinct_count_query]
-            return jsonify(center_count) , 200
+
+            center_wise_suspicious_count = (
+                db.session.query(
+                    Exam_Data.center,  
+                    func.count(distinct(Exam_Data.student_id))  
+                )
+                .filter(Exam_Data.suspicious_activity.like("yes%"))  
+                .group_by(Exam_Data.center)  
+                .all()
+            )
+            center_count = [{"center" : data[0] , "count":data[1]} for data in distinct_count_query]
+            center_wise_suspicious_count = [{"center" : city , "count" : count} for city , count in center_wise_suspicious_count]
+
+            return jsonify({
+                "centerwise_count" : center_count,
+                "centerwise_suspicious_count" : center_wise_suspicious_count
+            }) , 200
         except Exception as e :
             return jsonify({"Error" : str(e)})
 
@@ -259,14 +293,14 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                 "question_answer" : row.question_answer,
                 "supicious_activity" : row.suspicious_activity,
                 "end_time" : row.end_time,
-                "transation_id" : row.transaction_id
+                "transation_id" : row.transaction_id,
+                "wallet_address" : wallet_address,
             }
                 for row in wallet_data
             ]
             return jsonify(wallet_data) , 200
         except Exception as e :
             return jsonify({"Error" : str(e)}) , 400
-    
     
     @app.route("/get_exam_metadata" , methods = ["GET"])
     def get_question_paper():
@@ -278,7 +312,9 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                         "Exam_Title" : Exam_metadata.Exam_title,
                         "City" : Exam_metadata.City,
                         "Center" : Exam_metadata.Center,
-                        "Booklet" : Exam_metadata.booklet
+                        "Booklet" : Exam_metadata.booklet,
+                        "Exam_start_time" : Exam_metadata.Exam_start_time,
+                        "Exam_end_time" : Exam_metadata.Exam_End_time
                     }) , 200
         except Exception as e:
             return jsonify({"Error" : e}) , 400

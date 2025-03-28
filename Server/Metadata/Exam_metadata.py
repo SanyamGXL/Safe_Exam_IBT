@@ -1,14 +1,14 @@
 
 import os
 import json
+import datetime
 
-Exam_title = "UPSC"
-City = "Delhi"
-Center = "AIU"
-booklet = "A"
-Exam_start_time = None
-Exam_End_time = None
-
+Exam_title = "MPSC"
+City = "Mumbai"
+Center = "Jeeto University"
+booklet = "b"
+Exam_start_time = datetime.datetime.now()
+Exam_End_time = Exam_start_time + datetime.timedelta(seconds=120)
 
 question_paper_dir = "Multisign_question_paper/question_paper.json"
 if os.path.exists(question_paper_dir):

@@ -313,8 +313,8 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
                         "City" : Exam_metadata.City,
                         "Center" : Exam_metadata.Center,
                         "Booklet" : Exam_metadata.booklet,
-                        "Exam_start_time" : Exam_metadata.Exam_start_time,
-                        "Exam_end_time" : Exam_metadata.Exam_End_time
+                        "Exam_start_time" : Exam_metadata.Exam_start_time.strftime(format='%H:%M:%S'),
+                        "Exam_end_time" : Exam_metadata.Exam_End_time.strftime(format='%H:%M:%S')
                     }) , 200
         except Exception as e:
             return jsonify({"Error" : e}) , 400

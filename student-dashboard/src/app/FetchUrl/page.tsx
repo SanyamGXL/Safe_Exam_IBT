@@ -1,4 +1,4 @@
-const baseUrl = "https://f04b-2405-201-200a-f0a7-c98c-c0bb-dc17-e34b.ngrok-free.app/"
+const baseUrl = "http://127.0.0.1:3333/"
 const dataUrl = `${baseUrl}get_all_quiz_data`
 const dummyUrl = `${baseUrl}get_all_quiz_dummy_data`
 export const anomalyUrl = `${baseUrl}get_suspicious_user_count`

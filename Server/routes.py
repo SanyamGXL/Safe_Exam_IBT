@@ -53,7 +53,7 @@ def create_routes(app : Flask , db : SQLAlchemy , bcrypt : Bcrypt):
 
             student_data = {
                 "student_id": student_id,
-                "backend_url": "https://e5d8-2405-201-200a-f0a7-60cf-76a9-4ec6-c16b.ngrok-free.app",
+                "backend_url": "http://127.0.0.1:3333",
                 "blockchain_endpoint": "/write_to_blockchain",
                 "register_endpoint": "/register_device"
             }

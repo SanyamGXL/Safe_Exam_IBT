@@ -12,7 +12,7 @@ This project is a the replica of CBT version of Safe Exam , blockchain-integrate
 ---
 
 ### Project Structure
-
+```
 Safe_Exam_IBT/
 │
 ├─ Blockchain/           # Blockchain interaction and smart contract logic
@@ -26,7 +26,7 @@ Safe_Exam_IBT/
 ├─ safeexam-frontend/    # React frontend
 │   └─ package.json
 └─ README.md
-
+```
 ---
 
 ## Setup Instructions

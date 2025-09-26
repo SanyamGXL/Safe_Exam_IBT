@@ -221,60 +221,7 @@ def show_transaction():
             else:
                 return jsonify({
                     "Failure" : "User row not found !!!"
-                })
-            
-
-
-        #     pickled_multisign_transaction = pickle.loads(user_row[3])
-        #     private_key = user_row[5]
-        #     signed_multisign_txn = pickled_multisign_transaction.sign(private_key)
-
-
-        #     # Check if any user is left to sign the transaction
-        #     check_signature_left = cursor.execute(
-        #         "SELECT * FROM USERS WHERE is_signed = ?" , (False,)
-        #     ).fetchall()
-
-
-        #     if check_signature_left :
-        #         serialized_multisign_transaction = pickle.dumps(obj=signed_multisign_txn)
-        #         cursor.execute("UPDATE TABLE USERS SET transaction_blob = ?" , (serialized_multisign_transaction))
-        #         cursor.execute("UPDATE TABLE USERS SET is_signed = ?" , (True ,))
-        #         return jsonify({
-        #                 "Message" : "Not all users have signed Transaction."
-        #             })
-            
-        #     else:
-        #         print("ALL users have signed the transaction !!!")
-
-        #         txid = algod_client.send_transaction(signed_multisign_txn)
-        #         transaction.wait_for_confirmation(algod_client=algod_client , txid=txid)
-
-        #         print("Transaction successfull !!")
-        #         print("Downloading question paper !!")
-
-                
-        #         quiz_data_api_url = "https://flask-quiz-app-xi.vercel.app/"
-        #         response = requests.get(quiz_data_api_url)
-        #         if response.status_code == 200:
-        #             print("Questions Data Received !!!")
-        #             quiz_question_data = json.loads(response.text)
-
-        #             with open("question_paper.json" , "w") as file:
-        #                 json.dump(obj=quiz_question_data , fp=file)
-        #             return jsonify({
-        #                 "Success" : "Question Set Downloaded !!"
-        #             })
-        #         else:
-        #             return jsonify({
-        #                 "Failure" : "Flask server Error."
-        #             })
-        
-        # elif request.method == "GET":
-        #     pass
-
-
-            
+                })    
             
     except Exception as e :
         return jsonify ({
